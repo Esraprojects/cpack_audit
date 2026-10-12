@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Free Esra income, payment and profit manager">
+  <title>Free Esra Ledger</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">FE</span>
+      <div>
+        <h1>Free Esra</h1>
+        <p class="brand-sub">Income &amp; cost manager</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" data-tab="income" aria-selected="true">Income</button>
+      <button class="tab" role="tab" data-tab="payment" aria-selected="false">Payments</button>
+      <button class="tab" role="tab" data-tab="owner" aria-selected="false">Owner <span aria-hidden="true">&#128274;</span></button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ================= INCOME ================= -->
+    <section id="tab-income" class="panel" role="tabpanel">
+      <div class="card">
+        <div class="card-head">
+          <h2 id="income-form-title">New income</h2>
+          <div class="price-mode" role="group" aria-label="Prices entered per">
+            <span class="muted small">Prices per</span>
+            <button type="button" class="seg" data-price-mode="unit">Unit</button>
+            <button type="button" class="seg" data-price-mode="order">Whole order</button>
+          </div>
+        </div>
+        <div class="quickfill" id="income-quickfill" hidden>
+          <span class="muted small">Quick fill:</span>
+          <div class="chips" id="income-quickfill-chips"></div>
+        </div>
+        <form id="income-form" autocomplete="off" novalidate>
+          <input type="hidden" name="id">
+          <div class="grid">
+            <label class="field">
+              <span>Date</span>
+              <input type="date" name="date" required>
+            </label>
+            <label class="field">
+              <span>Material</span>
+              <select name="material" required data-material-select></select>
+              <input type="text" name="materialOther" class="other-input" placeholder="Type the new material" hidden>
+            </label>
+            <label class="field">
+              <span>GSM</span>
+              <input type="number" name="gsm" inputmode="numeric" min="0" step="any" list="dl-gsm" placeholder="e.g. 300">
+            </label>
+            <div class="field span-2">
+              <span>Size</span>
+              <div class="chips" data-chip-group="size"></div>
+            </div>
+            <div class="field span-2">
+              <span>Print type</span>
+              <div class="chips" data-chip-group="printType"></div>
+            </div>
+            <label class="field">
+              <span>Amount (quantity)</span>
+              <input type="number" name="qty" inputmode="decimal" min="0" step="any" list="dl-qty" placeholder="e.g. 500">
+            </label>
+            <label class="field">
+              <span data-label-cost>Initial cost (Birr per unit)</span>
+              <input type="number" name="initialCost" inputmode="decimal" min="0" step="any" list="dl-cost" placeholder="0.00">
+            </label>
+            <label class="field">
+              <span data-label-price>Selling price (Birr per unit)</span>
+              <input type="number" name="sellingPrice" inputmode="decimal" min="0" step="any" list="dl-price" placeholder="0.00">
+            </label>
+            <label class="field">
+              <span>Total Birr to be paid</span>
+              <input type="number" name="total" inputmode="decimal" min="0" step="any" placeholder="auto">
+              <small class="hint" id="total-hint">Calculated automatically — you can type over it.</small>
+            </label>
+            <label class="field">
+              <span>Paid (Birr)</span>
+              <input type="number" name="paid" inputmode="decimal" min="0" step="any" placeholder="0.00">
+            </label>
+            <label class="field">
+              <span>Remaining (Birr)</span>
+              <input type="text" name="remaining" readonly tabindex="-1" class="readonly">
+            </label>
+            <label class="field">
+              <span>Phone number</span>
+              <input type="tel" name="phone" inputmode="tel" list="dl-phone" placeholder="09…">
+            </label>
+            <label class="field span-2">
+              <span>Other reasons / notes</span>
+              <input type="text" name="notes" list="dl-notes" placeholder="Customer name, delivery, design…">
+            </label>
+          </div>
+          <div class="preview" id="income-preview" aria-live="polite"></div>
+          <div class="actions">
+            <button type="button" class="btn ghost" id="income-cancel" hidden>Cancel edit</button>
+            <button type="button" class="btn ghost" id="income-clear">Clear</button>
+            <button type="submit" class="btn primary" id="income-done">Done</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Recent income</h2>
+          <span class="muted small" id="income-recent-note"></span>
+        </div>
+        <div class="table-wrap" id="income-recent"></div>
+      </div>
+    </section>
+
+    <!-- ================= PAYMENTS ================= -->
+    <section id="tab-payment" class="panel" role="tabpanel" hidden>
+      <div class="card">
+        <div class="card-head">
+          <h2 id="payment-form-title">New payment (cost)</h2>
+        </div>
+        <div class="quickfill" id="payment-quickfill" hidden>
+          <span class="muted small">Quick fill:</span>
+          <div class="chips" id="payment-quickfill-chips"></div>
+        </div>
+        <form id="payment-form" autocomplete="off" novalidate>
+          <input type="hidden" name="id">
+          <div class="grid">
+            <label class="field">
+              <span>Date</span>
+              <input type="date" name="date" required>
+            </label>
+            <label class="field">
+              <span>Material</span>
+              <select name="material" required data-material-select></select>
+              <input type="text" name="materialOther" class="other-input" placeholder="Type the new material / item" hidden>
+            </label>
+            <label class="field">
+              <span>GSM</span>
+              <input type="number" name="gsm" inputmode="numeric" min="0" step="any" list="dl-gsm" placeholder="e.g. 300">
+            </label>
+            <div class="field span-2">
+              <span>Size</span>
+              <div class="chips" data-chip-group="size"></div>
+            </div>
+            <div class="field span-2">
+              <span>Type</span>
+              <div class="chips" data-chip-group="type"></div>
+            </div>
+            <label class="field">
+              <span>Quantity <span class="muted">(optional)</span></span>
+              <input type="number" name="qty" inputmode="decimal" min="0" step="any" list="dl-qty" placeholder="e.g. 10">
+            </label>
+            <label class="field">
+              <span>Amount paid (Birr)</span>
+              <input type="number" name="amount" inputmode="decimal" min="0" step="any" list="dl-pay" placeholder="0.00" required>
+            </label>
+            <label class="field">
+              <span>Phone number</span>
+              <input type="tel" name="phone" inputmode="tel" list="dl-phone" placeholder="Supplier phone">
+            </label>
+            <label class="field span-2">
+              <span>Other reasons / notes</span>
+              <input type="text" name="notes" list="dl-notes" placeholder="Supplier, transport, rent, salary…">
+            </label>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn ghost" id="payment-cancel" hidden>Cancel edit</button>
+            <button type="button" class="btn ghost" id="payment-clear">Clear</button>
+            <button type="submit" class="btn primary" id="payment-done">Done</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Recent payments</h2>
+          <span class="muted small" id="payment-recent-note"></span>
+        </div>
+        <div class="table-wrap" id="payment-recent"></div>
+      </div>
+    </section>
+
+    <!-- ================= OWNER ================= -->
+    <section id="tab-owner" class="panel" role="tabpanel" hidden>
+      <div class="card login-card" id="owner-login">
+        <h2>Owner access</h2>
+        <p class="muted">The full financial report is protected. Enter the owner password.</p>
+        <form id="login-form" class="login-row">
+          <label class="sr-only" for="owner-pass">Password</label>
+          <input type="password" id="owner-pass" placeholder="Password" autocomplete="current-password" required>
+          <button class="btn primary" type="submit">Unlock</button>
+        </form>
+        <p class="error" id="login-error" hidden>Wrong password. Try again.</p>
+      </div>
+
+      <div id="owner-area" hidden>
+        <div class="card report-controls no-print-bg">
+          <div class="card-head">
+            <h2>Financial report</h2>
+            <div class="row gap">
+              <button class="btn ghost small-btn" id="btn-print">Print / PDF</button>
+              <button class="btn ghost small-btn" id="btn-lock">Lock</button>
+            </div>
+          </div>
+          <div class="range-row">
+            <label class="field compact"><span>From</span><input type="date" id="range-from"></label>
+            <label class="field compact"><span>To</span><input type="date" id="range-to"></label>
+            <div class="chips presets" id="range-presets">
+              <button type="button" class="chip" data-preset="today">Today</button>
+              <button type="button" class="chip" data-preset="week">This week</button>
+              <button type="button" class="chip" data-preset="month">This month</button>
+              <button type="button" class="chip" data-preset="lastmonth">Last month</button>
+              <button type="button" class="chip" data-preset="year">This year</button>
+              <button type="button" class="chip" data-preset="all">All time</button>
+            </div>
+          </div>
+          <p class="muted small" id="range-label"></p>
+        </div>
+
+        <div class="kpis" id="kpis"></div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Income, cost and pure profit over time</h2>
+            <span class="muted small" id="trend-grain"></span>
+          </div>
+          <div class="chart" id="chart-trend"></div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-head"><h2>Pure profit by material</h2></div>
+            <p class="muted small">Selling total − initial cost for each material.</p>
+            <div class="chart" id="chart-material"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Payments (costs) by material</h2></div>
+            <p class="muted small">Money paid out in the Payments section.</p>
+            <div class="chart" id="chart-expense"></div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-head"><h2>Sales by print type</h2></div>
+            <div class="chart" id="chart-print"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Customers who still owe</h2></div>
+            <div class="table-wrap" id="debtors"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Suggested strategies</h2>
+            <button class="btn primary small-btn" id="btn-ai">Ask Claude AI</button>
+          </div>
+          <div id="insights" class="insights"></div>
+          <div id="ai-output" class="ai-output" hidden></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Income records</h2>
+            <button class="btn ghost small-btn" id="btn-csv-income">Export CSV</button>
+          </div>
+          <div class="table-wrap" id="owner-income"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Payment records</h2>
+            <button class="btn ghost small-btn" id="btn-csv-payment">Export CSV</button>
+          </div>
+          <div class="table-wrap" id="owner-payment"></div>
+        </div>
+
+        <div class="card no-print">
+          <div class="card-head"><h2>Data &amp; settings</h2></div>
+          <div class="settings-grid">
+            <div>
+              <h3>Backup</h3>
+              <p class="muted small">Records are saved in this browser. Download a backup regularly, and use it to move data to another device.</p>
+              <div class="row gap wrap">
+                <button class="btn ghost" id="btn-backup">Download backup</button>
+                <label class="btn ghost file-btn">Restore backup<input type="file" id="restore-file" accept="application/json,.json" hidden></label>
+              </div>
+            </div>
+            <div>
+              <h3>Claude AI advice</h3>
+              <p class="muted small">Optional. Paste an Anthropic API key to get written strategy advice from Claude. The key stays in this browser only; the report totals (not phone numbers) are sent to Anthropic when you press “Ask Claude AI”.</p>
+              <form id="key-form" class="row gap wrap">
+                <label class="sr-only" for="api-key">Anthropic API key</label>
+                <input type="password" id="api-key" placeholder="sk-ant-…" autocomplete="off">
+                <button class="btn ghost" type="submit">Save key</button>
+                <button class="btn ghost" type="button" id="btn-key-clear">Remove</button>
+              </form>
+              <p class="muted small" id="key-status"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- shared suggestion lists (filled from memory) -->
+  <datalist id="dl-gsm"></datalist>
+  <datalist id="dl-qty"></datalist>
+  <datalist id="dl-cost"></datalist>
+  <datalist id="dl-price"></datalist>
+  <datalist id="dl-pay"></datalist>
+  <datalist id="dl-phone"></datalist>
+  <datalist id="dl-notes"></datalist>
+
+  <dialog id="collect-dialog">
+    <form method="dialog" id="collect-form">
+      <h3>Receive payment</h3>
+      <p class="muted small" id="collect-info"></p>
+      <label class="field"><span>Amount received (Birr)</span><input type="number" step="any" min="0" name="amount" required></label>
+      <div class="actions">
+        <button class="btn ghost" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn primary" value="ok">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+
+  <script src="js/sha256.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/insights.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
