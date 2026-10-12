@@ -883,6 +883,11 @@
     $('#user-bar').hidden = name !== 'app' && name !== 'pending';
   }
 
+  // Installable app on Android and iPhone: cache the app so it opens on weak internet.
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !C.emulator) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  }
+
   buildChips(inc);
   buildChips(pay);
   inc.elements.date.value = today();

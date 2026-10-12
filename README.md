@@ -4,7 +4,7 @@ An online web app for the Free Esra project. It records **income** (sales) and *
 
 - Runs on free services: **Firebase** (Google) for logins and the database, and **Netlify** for the website.
 - Everyone signs in. Only the owner can open the Owner tab, and the database itself refuses owner data to anyone else.
-- Works on phones and keeps working on weak internet: entries sync when the connection returns.
+- Works on **Android and iPhone** (and computers). Install it from the browser to get a home-screen app icon. It keeps working on weak internet: entries sync when the connection returns.
 
 **To put it online, follow [SETUP.md](SETUP.md)** (about 20 minutes, one time).
 
@@ -70,6 +70,7 @@ Someone who creates their own login, or who has been removed, sees only a "waiti
 index.html        page layout
 css/style.css     styles (light and dark mode, mobile friendly, print)
 js/config.js      your Firebase project settings and owner email (fill in once)
+js/setup.js       setup helper shown until config.js is filled in
 js/cloud.js       login, live data and saving to Firebase
 js/store.js       input memory and report calculations
 js/charts.js      SVG charts with tooltips
@@ -79,4 +80,6 @@ js/app.js         screens and buttons
 firestore.rules   database security rules (who can read and write what)
 netlify.toml      website hosting settings
 firebase.json     settings for the Firebase command-line tool (optional)
+manifest.webmanifest, icons/   home-screen app icon for Android and iPhone
+sw.js             lets the installed app open on weak internet
 ```

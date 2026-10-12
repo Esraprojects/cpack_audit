@@ -2,9 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Free Esra income, payment and profit manager">
   <title>Free Esra Ledger</title>
+  <meta name="theme-color" content="#0f6b5c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="Free Esra">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -29,10 +38,33 @@
   </header>
 
   <!-- ================= SETUP NEEDED ================= -->
-  <section class="gate" id="setup-screen" hidden>
+  <section class="gate gate-wide" id="setup-screen" hidden>
     <div class="card gate-card">
-      <h2>Almost ready</h2>
-      <p>This app is not connected to its online database yet. Follow <b>SETUP.md</b> in the project files: create a free Firebase project, then paste its settings into <code>js/config.js</code>.</p>
+      <h2>Connect your database</h2>
+      <p>This site is not connected to Firebase yet. Create the free Firebase project first (SETUP.md, Part 1), then fill in the two boxes below. The helper writes the two pieces of text you need to paste.</p>
+      <form id="setup-form" class="stack">
+        <label class="field"><span>1. Paste the firebaseConfig block from Firebase (Project settings → Your apps)</span>
+          <textarea id="setup-config" rows="8" spellcheck="false" placeholder="const firebaseConfig = {&#10;  apiKey: &quot;AIza...&quot;,&#10;  authDomain: &quot;...&quot;,&#10;  ...&#10;};"></textarea></label>
+        <label class="field"><span>2. Owner email (the login you created in Firebase Authentication)</span>
+          <input type="email" id="setup-email" placeholder="esra@gmail.com" autocomplete="off"></label>
+        <button class="btn primary" type="submit">Make my settings</button>
+      </form>
+      <p class="error" id="setup-error" hidden></p>
+      <div id="setup-out" class="stack" hidden>
+        <div class="setup-step">
+          <h3>A. Settings file</h3>
+          <p class="small">On GitHub open <b>js/config.js</b> → pencil (Edit) → select all the text and delete it → paste this → <b>Commit changes</b>.</p>
+          <pre class="codebox" id="setup-config-out"></pre>
+          <button class="btn ghost small-btn" type="button" data-copy="setup-config-out">Copy settings</button>
+        </div>
+        <div class="setup-step">
+          <h3>B. Security rules</h3>
+          <p class="small">In Firebase open <b>Firestore Database → Rules</b> → select all and delete → paste this → <b>Publish</b>.</p>
+          <pre class="codebox" id="setup-rules-out"></pre>
+          <button class="btn ghost small-btn" type="button" data-copy="setup-rules-out">Copy rules</button>
+        </div>
+        <p class="small muted">After the commit, the site updates by itself within a minute or two. Reload this page and sign in with the owner email.</p>
+      </div>
     </div>
   </section>
 
@@ -392,6 +424,7 @@
   <script src="js/charts.js"></script>
   <script src="js/insights.js"></script>
   <script src="js/ai.js"></script>
+  <script src="js/setup.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

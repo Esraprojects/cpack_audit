@@ -56,7 +56,7 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
 body {
   margin: 0;
   background: var(--bg);
@@ -79,6 +79,10 @@ h3 { font-size: .95rem; margin-bottom: 6px; }
   position: sticky; top: 0; z-index: 10;
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
   padding: 10px 16px;
+  /* keep clear of the iPhone notch / Android cut-outs when installed full screen */
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  padding-right: calc(16px + env(safe-area-inset-right, 0px));
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
@@ -96,7 +100,7 @@ h3 { font-size: .95rem; margin-bottom: 6px; }
 }
 .tab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 
-main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+main { max-width: 1100px; margin: 0 auto; padding: 16px; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
 .panel { display: grid; gap: 16px; }
 #owner-area { display: grid; gap: 16px; }
 #owner-area[hidden] { display: none; }
@@ -117,7 +121,8 @@ main { max-width: 1100px; margin: 0 auto; padding: 16px; }
 .field > span { font-size: .82rem; font-weight: 600; color: var(--text-2); }
 .field.compact { flex: 0 1 170px; }
 input, select {
-  font: inherit; color: var(--text); background: var(--surface);
+  font: inherit; font-size: 16px; /* 16px stops iPhone Safari zooming in on tap */
+  color: var(--text); background: var(--surface);
   border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; min-height: 42px; width: 100%;
 }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
@@ -178,6 +183,12 @@ tr:hover td { background: var(--surface-2); }
 .gate-card { display: grid; gap: 12px; }
 .gate-card p { margin: 0; }
 .stack { display: grid; gap: 12px; }
+.gate-wide { max-width: 720px; }
+textarea { font: 16px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; width: 100%; resize: vertical; }
+textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+.setup-step { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); min-width: 0; }
+.setup-step p { margin: 0; }
+.codebox { margin: 0; max-height: 220px; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font: .78rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; }
 .linkish { background: none; border: 0; color: var(--accent); font: inherit; cursor: pointer; justify-self: start; padding: 4px 0; text-decoration: underline; }
 code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
 .user-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .82rem; color: var(--text-2); }
@@ -242,7 +253,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
 
 /* toast + dialog */
 .toast {
-  position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 40px); opacity: 0;
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 40px); opacity: 0;
   background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-weight: 600;
   transition: all .25s; pointer-events: none; z-index: 60; max-width: calc(100vw - 32px);
 }
@@ -251,11 +262,11 @@ dialog { border: 1px solid var(--border); border-radius: var(--radius); backgrou
 dialog::backdrop { background: rgba(0, 0, 0, .4); }
 
 @media (max-width: 520px) {
-  .app-header { padding: 8px 16px; position: static; }
+  .app-header { padding-top: calc(8px + env(safe-area-inset-top, 0px)); padding-bottom: 8px; position: static; }
   .tabs { width: 100%; }
   .tab { flex: 1; padding: 8px 6px; }
   .user-bar { width: 100%; justify-content: space-between; }
-  main { padding: 12px 16px; }
+  main { padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
   .card { padding: 14px; }
 }
 
