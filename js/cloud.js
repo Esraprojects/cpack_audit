@@ -174,7 +174,7 @@
   }
 
   async function importAll(data) {
-    if (!data || !Array.isArray(data.income) || !Array.isArray(data.payments)) throw new Error('This file is not a Free Esra backup.');
+    if (!data || !Array.isArray(data.income) || !Array.isArray(data.payments)) throw new Error('This file is not a CPack Audit backup.');
     var writes = [];
     function prep(kind, r) {
       var d = Object.assign({}, r);

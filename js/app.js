@@ -1,4 +1,4 @@
-/* Free Esra ledger — UI wiring. */
+/* CPack Audit ledger — UI wiring. */
 (function () {
   'use strict';
   var E = window.Esra;
@@ -715,7 +715,7 @@
   function rangeTag() { var r = currentRange(); return (r.from || 'start') + '_to_' + (r.to || 'latest'); }
   $('#btn-csv-income').addEventListener('click', function () {
     if (!lastReport) return;
-    download('free-esra-income_' + rangeTag() + '.csv', csv(lastReport.data.income.slice().sort(byNewest), [
+    download('cpack-audit-income_' + rangeTag() + '.csv', csv(lastReport.data.income.slice().sort(byNewest), [
       ['Date', 'date'], ['Material', 'material'], ['GSM', 'gsm'], ['Size', 'size'], ['Print type', 'printType'], ['Amount', 'qty'],
       ['Initial cost', 'initialCost'], ['Selling price', 'sellingPrice'], ['Prices per', 'priceMode'], ['Total initial cost', 'totalCost'],
       ['Total birr', 'total'], ['Paid', 'paid'], ['Remaining', 'remaining'], ['Profit', 'profit'], ['Phone', 'phone'], ['Other reasons', 'notes']
@@ -723,7 +723,7 @@
   });
   $('#btn-csv-payment').addEventListener('click', function () {
     if (!lastReport) return;
-    download('free-esra-payments_' + rangeTag() + '.csv', csv(lastReport.data.payments.slice().sort(byNewest), [
+    download('cpack-audit-payments_' + rangeTag() + '.csv', csv(lastReport.data.payments.slice().sort(byNewest), [
       ['Date', 'date'], ['Material', 'material'], ['GSM', 'gsm'], ['Size', 'size'], ['Type', 'type'], ['Quantity', 'qty'],
       ['Amount', 'amount'], ['Phone', 'phone'], ['Other reasons', 'notes']
     ]), 'text/csv;charset=utf-8');
@@ -732,7 +732,7 @@
     var btn = this;
     btn.disabled = true;
     C.exportAll().then(function (data) {
-      download('free-esra-backup_' + today() + '.json', JSON.stringify(data, null, 2), 'application/json');
+      download('cpack-audit-backup_' + today() + '.json', JSON.stringify(data, null, 2), 'application/json');
     }).catch(function (err) { toast(friendly(err)); }).then(function () { btn.disabled = false; });
   });
   $('#restore-file').addEventListener('change', function () {
@@ -743,7 +743,7 @@
     var input = this;
     reader.onload = function () {
       var data;
-      try { data = JSON.parse(reader.result); } catch (err) { toast('This file is not a Free Esra backup.'); input.value = ''; return; }
+      try { data = JSON.parse(reader.result); } catch (err) { toast('This file is not a CPack Audit backup.'); input.value = ''; return; }
       C.importAll(data).then(function (n) { toast('Uploaded ' + n + ' records ✓'); })
         .catch(function (err) { toast(friendly(err)); })
         .then(function () { input.value = ''; });

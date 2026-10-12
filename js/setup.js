@@ -19,7 +19,7 @@
   function configText(cfg, email) {
     var lines = KEYS.filter(function (k) { return cfg[k]; }).map(function (k) { return '    ' + k + ': ' + q(cfg[k]); });
     return [
-      '/* Free Esra — online settings (made by the setup helper).',
+      '/* CPack Audit — online settings (made by the setup helper).',
       '   The Firebase web config is not a secret: access is controlled by the login',
       '   and by firestore.rules on Google\'s servers. */',
       'window.ESRA_CONFIG = {',

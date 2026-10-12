@@ -3,7 +3,7 @@
 (function (global) {
   'use strict';
   var E = global.Esra = global.Esra || {};
-  var KEY_STORE = 'freeEsra.claudeKey';
+  var KEY_STORE = 'cpackAudit.claudeKey';
   var SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.129.0/+esm';
   var MODEL = 'claude-opus-5-5';
 
@@ -11,7 +11,7 @@
   function setKey(k) { try { if (k) localStorage.setItem(KEY_STORE, k); else localStorage.removeItem(KEY_STORE); return true; } catch (e) { return false; } }
 
   var SYSTEM = [
-    'You are a practical business advisor for "Free Esra", a small printing, packaging-material and training business in Ethiopia.',
+    'You are a practical business advisor for a small printing, packaging-material and training business in Ethiopia that keeps its books in the CPack Audit app.',
     'Products include paper and board (duplex, kaki, white top, food grade, art paper and others), lacquer, frames, print packages and trainings. Prices are in Ethiopian Birr.',
     'You receive a JSON financial report for one period. "initialCost" is the cost of goods sold recorded with each sale; "expenses" are separate payments made (materials bought, suppliers, other costs). Pure profit = sales - initialCost - expenses.',
     'Write for the owner, who is not an accountant: short sentences, concrete numbers from the report, no jargon.',

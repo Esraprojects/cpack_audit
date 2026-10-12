@@ -1,6 +1,6 @@
-# Free Esra — Income & Cost Manager
+# CPack Audit — Income & Cost Manager
 
-An online web app for the Free Esra project. It records **income** (sales) and **payments** (costs), and gives the owner a locked **financial report**. The report shows totals, initial cost, pure profit, charts and suggested strategies.
+An online web app for the CPack Audit project. It records **income** (sales) and **payments** (costs), and gives the owner a locked **financial report**. The report shows totals, initial cost, pure profit, charts and suggested strategies.
 
 - Runs on free services: **Firebase** (Google) for logins and the database, and **Netlify** for the website.
 - Everyone signs in. Only the owner can open the Owner tab, and the database itself refuses owner data to anyone else.

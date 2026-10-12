@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Free Esra — database security rules.
+// CPack Audit — database security rules.
 // These run on Google's servers, so they cannot be bypassed from the browser.
 //
 // SETUP: replace OWNER_EMAIL_HERE below with the owner's login email (lower case),

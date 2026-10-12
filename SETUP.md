@@ -1,9 +1,9 @@
-# Put Free Esra online (free)
+# Put CPack Audit online (free)
 
 This takes about 20 minutes and costs nothing. No credit card is needed.
 
 - **Firebase** (by Google) stores the records and handles logins. Its free "Spark" plan allows 50,000 reads and 20,000 saves per day, which is far more than a shop needs.
-- **Netlify** puts the website online at an address like `free-esra.netlify.app`. It reads the files straight from this private GitHub repo and updates the site by itself whenever the code changes.
+- **Netlify** puts the website online at an address like `cpack-audit.netlify.app`. It reads the files straight from this private GitHub repo and updates the site by itself whenever the code changes.
 
 You only do this once.
 
@@ -12,7 +12,7 @@ You only do this once.
 ## Part 1 — Firebase (database and logins)
 
 1. Go to <https://console.firebase.google.com> and sign in with a Google account.
-2. Click **Create a project** and name it `free-esra`. Turn Google Analytics **off** (not needed), then click **Create project**.
+2. Click **Create a project** and name it `cpack-audit`. Turn Google Analytics **off** (not needed), then click **Create project**.
 
 ### Turn on email + password login
 3. In the left menu open **Build → Authentication → Get started**.
@@ -28,7 +28,7 @@ You only do this once.
 
 ### Get your project's settings
 9. Click the gear icon ⚙ next to *Project Overview* → **Project settings**.
-10. Under **Your apps**, click the web icon **`</>`**. Nickname: `free-esra`. Leave "Firebase Hosting" unticked. Click **Register app**.
+10. Under **Your apps**, click the web icon **`</>`**. Nickname: `cpack-audit`. Leave "Firebase Hosting" unticked. Click **Register app**.
 11. You will see a block of code that starts with `const firebaseConfig = {`. Keep this page open. You will copy it in Part 3.
 
 ---
@@ -43,8 +43,8 @@ You only do this once.
    - **Build command:** leave empty
    - **Publish directory:** `.`
 5. Click **Deploy**. After about a minute you get an address like `https://random-name-123.netlify.app`.
-6. Optional: in **Site configuration → Change site name**, rename it to, for example, `free-esra` → `https://free-esra.netlify.app`.
-7. Back in Firebase: **Authentication → Settings → Authorized domains → Add domain**. Add your Netlify address without `https://`, for example `free-esra.netlify.app`. This makes the "Forgot password" emails work.
+6. Optional: in **Site configuration → Change site name**, rename it to, for example, `cpack-audit` → `https://cpack-audit.netlify.app`.
+7. Back in Firebase: **Authentication → Settings → Authorized domains → Add domain**. Add your Netlify address without `https://`, for example `cpack-audit.netlify.app`. This makes the "Forgot password" emails work.
 
 ---
 
@@ -74,7 +74,7 @@ The settings in `js/config.js` are safe to keep in the code. They only tell the 
    - **Android (Chrome):** open your Netlify address, tap the menu **⋮** → **Install app** (or **Add to Home screen**) → **Install**.
    - **iPhone (Safari):** open your Netlify address **in Safari**, tap the **Share** button (square with an arrow) → **Add to Home Screen** → **Add**. On iPhone this only works from Safari, not from Chrome or the Instagram/Telegram browser.
 
-   The Free Esra icon appears on the home screen and opens full screen like a normal app. It also opens on weak internet and updates itself when online.
+   The CPack Audit icon appears on the home screen and opens full screen like a normal app. It also opens on weak internet and updates itself when online.
 2. Sign in with the owner email and password.
 3. Open the **Owner** tab. It asks for the password again. Scroll down to **Staff** and add each manager with a name, email and starting password. Give them those details.
 4. Managers sign in on their own phones. They see only **Income** and **Payments**, with unpaid orders and the last two days of entries. They never see the Owner tab, the report or the full history. Google's servers refuse that data to them even if they try technical tricks.

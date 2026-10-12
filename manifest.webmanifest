@@ -1,7 +1,7 @@
 {
-  "name": "Free Esra — Income & Cost",
-  "short_name": "Free Esra",
-  "description": "Income, payments and profit manager for Free Esra.",
+  "name": "CPack Audit — Income & Cost",
+  "short_name": "CPack Audit",
+  "description": "Income, payments and profit manager — CPack Audit.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

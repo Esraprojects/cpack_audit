@@ -1,7 +1,7 @@
-/* Free Esra service worker: lets the installed app open on weak or no internet.
+/* CPack Audit service worker: lets the installed app open on weak or no internet.
    Network first, so updates (like a new js/config.js) show up as soon as you are online;
    the saved copy is used only when the network fails. Records are synced by Firebase itself. */
-var CACHE = 'free-esra-v1';
+var CACHE = 'cpack-audit-v1';
 var SHELL = [
   './', './index.html', './css/style.css', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png',
   './js/config.js', './js/cloud.js', './js/store.js', './js/charts.js', './js/insights.js', './js/ai.js', './js/setup.js', './js/app.js',

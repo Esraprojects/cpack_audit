@@ -1,4 +1,4 @@
-/* Free Esra — online settings.
+/* CPack Audit — online settings.
    Fill these in once (see SETUP.md). The Firebase web config is not a secret:
    access is controlled by the login and by firestore.rules on Google's servers. */
 window.ESRA_CONFIG = {
