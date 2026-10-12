@@ -1,13 +1,12 @@
 # Free Esra — Income & Cost Manager
 
-A small web app for the Free Esra project. It records **income** (sales) and **payments** (costs), and gives the owner a password-protected **financial report**. The report shows totals, initial cost, pure profit, charts and suggested strategies.
+An online web app for the Free Esra project. It records **income** (sales) and **payments** (costs), and gives the owner a locked **financial report**. The report shows totals, initial cost, pure profit, charts and suggested strategies.
 
-It is plain HTML/CSS/JavaScript: no server, no build step, no install.
+- Runs on free services: **Firebase** (Google) for logins and the database, and **Netlify** for the website.
+- Everyone signs in. Only the owner can open the Owner tab, and the database itself refuses owner data to anyone else.
+- Works on phones and keeps working on weak internet: entries sync when the connection returns.
 
-## How to open it
-
-- **On a computer:** double-click `index.html`. It opens in Chrome, Edge or Firefox.
-- **On a phone or for several people:** host the folder on any static host, such as GitHub Pages. In the repo, go to *Settings → Pages* and choose this branch. Then open the link on the phone and use *Add to Home screen*.
+**To put it online, follow [SETUP.md](SETUP.md)** (about 20 minutes, one time).
 
 ## Tabs
 
@@ -31,7 +30,7 @@ Fields: date, material/item, GSM, size, type, quantity (optional), amount paid (
 After **Done**, each record is saved with a timestamp and appears in the table. **Receive** records a later payment from a customer who still owes money. **Edit** corrects a record.
 
 ### Owner 🔒
-Password: `esmer@craft`
+Only the owner's account sees this tab. Opening it asks for the owner password again, checked by Google's servers, and it locks itself after 10 idle minutes.
 
 - Pick any period with the calendar (From / To), or use a preset: Today, This week, This month, Last month, This year, All time.
 - Totals: sales, collected, remaining, initial cost, payments, total cost, gross profit, **pure profit** with margin, and net cash flow.
@@ -40,6 +39,8 @@ Password: `esmer@craft`
 - **Suggested strategies:** built-in analysis covering margins, products to reprice, best earners, money to collect, spending, trends against the previous period, loyal customers and the best sales day. It works offline.
 - **Ask Claude AI** (optional): save an Anthropic API key under *Data & settings* to get written strategy advice from Claude. Only the report totals are sent, never phone numbers. The key is stored in that browser only.
 - Full record tables with Edit/Delete, **Export CSV** (opens in Excel), and **Print / PDF**.
+- **Staff:** add a manager (name, email, password) or remove one. Removal blocks them immediately.
+- **Backup:** download all records as a file, or upload a backup (also from the old offline version).
 
 ### Profit formulas
 | Figure | Formula |
@@ -51,21 +52,31 @@ Password: `esmer@craft`
 | **Pure profit** | sales − initial cost − payments |
 | Net cash flow | collected (paid) − payments |
 
-## Where the data lives — please read
-Records are saved in the **browser's local storage on the device you use**. This means:
+## Who can see what
+These rules are enforced by the database (`firestore.rules`) on Google's servers, not just hidden on screen.
 
-- Data entered on one phone is not visible on another device automatically. Use **Download backup** and **Restore backup** (Owner → Data & settings) to move or protect the data. Make a backup regularly.
-- Clearing the browser's site data deletes the records, unless you have a backup.
-- The owner password stops casual access on a shared device. It is **not** strong security, because anyone with technical skills can read the browser's storage. If several people on different devices need to share live data, the next step is a small online database (for example Firebase or Supabase).
+| | Owner | Manager | Anyone else |
+|---|---|---|---|
+| Add income and payments | ✓ | ✓ | ✗ |
+| See unpaid orders and the last 2 days of entries | ✓ | ✓ | ✗ |
+| Record a later payment ("Receive") and fix recent entries | ✓ | ✓ | ✗ |
+| Full history, report, charts, strategies | ✓ | ✗ | ✗ |
+| Delete records, manage staff, backups | ✓ | ✗ | ✗ |
+
+Someone who creates their own login, or who has been removed, sees only a "waiting for approval" screen and gets no data.
 
 ## Files
 ```
 index.html        page layout
 css/style.css     styles (light and dark mode, mobile friendly, print)
-js/store.js       saving, input memory and report calculations
+js/config.js      your Firebase project settings and owner email (fill in once)
+js/cloud.js       login, live data and saving to Firebase
+js/store.js       input memory and report calculations
 js/charts.js      SVG charts with tooltips
 js/insights.js    built-in strategy suggestions
 js/ai.js          optional Claude AI advice
-js/sha256.js      password check
 js/app.js         screens and buttons
+firestore.rules   database security rules (who can read and write what)
+netlify.toml      website hosting settings
+firebase.json     settings for the Firebase command-line tool (optional)
 ```

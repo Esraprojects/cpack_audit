@@ -1,0 +1,84 @@
+rules_version = '2';
+
+// Free Esra — database security rules.
+// These run on Google's servers, so they cannot be bypassed from the browser.
+//
+// SETUP: replace OWNER_EMAIL_HERE below with the owner's login email (lower case),
+// then publish the rules in Firebase console → Firestore Database → Rules.
+//
+// Who can do what:
+//   owner    — everything: full reports, all records, delete, manage staff.
+//   manager  — an email the owner added under Owner → Staff.
+//              Can add income and payments, and see only what the daily work needs:
+//              income that is still unpaid, plus income and payments from the last 3 days.
+//              Cannot see the full history, reports or staff list, and cannot delete.
+//   anyone else (including people who make their own account) — nothing.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function email() { return request.auth.token.email.lower(); }
+    function isOwner() { return signedIn() && email() == 'OWNER_EMAIL_HERE'; }
+    // A manager is the exact account the owner created for that email (uid must match),
+    // so registering someone else's email elsewhere gives no access.
+    function isStaff() {
+      return isOwner() || (signedIn()
+        && exists(/databases/$(database)/documents/staff/$(email()))
+        && get(/databases/$(database)/documents/staff/$(email())).data.uid == request.auth.uid);
+    }
+    function isRecent() {
+      return resource.data.createdAt > request.time - duration.value(3, 'd');
+    }
+    function stampedNow() {
+      return request.resource.data.createdBy == email()
+        && request.resource.data.createdAt == request.time;
+    }
+    function keepsStamp() {
+      return request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+    function validIncome() {
+      let d = request.resource.data;
+      return d.date is string && d.material is string
+        && d.total is number && d.paid is number && d.remaining is number
+        && d.totalCost is number && d.total >= 0 && d.paid >= 0 && d.remaining >= 0;
+    }
+    function validPayment() {
+      let d = request.resource.data;
+      return d.date is string && d.material is string && d.amount is number && d.amount >= 0;
+    }
+
+    // Staff list: only the owner manages it. A person may check their own entry.
+    match /staff/{staffEmail} {
+      allow read: if isOwner() || (signedIn() && email() == staffEmail);
+      allow write: if isOwner();
+    }
+
+    // Shared input memory (suggestions, last values per material).
+    match /memory/{docId} {
+      allow read, write: if isStaff();
+    }
+
+    match /income/{id} {
+      allow read: if isOwner()
+        || (isStaff() && (resource.data.remaining > 0 || isRecent()));
+      allow create: if validIncome() && (isOwner() || (isStaff() && stampedNow()));
+      allow update: if validIncome() && (isOwner()
+        || (isStaff() && (resource.data.remaining > 0 || isRecent()) && keepsStamp()));
+      allow delete: if isOwner();
+    }
+
+    match /payments/{id} {
+      allow read: if isOwner() || (isStaff() && isRecent());
+      allow create: if validPayment() && (isOwner() || (isStaff() && stampedNow()));
+      allow update: if validPayment() && (isOwner() || (isStaff() && isRecent() && keepsStamp()));
+      allow delete: if isOwner();
+    }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

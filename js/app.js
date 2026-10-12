@@ -2,9 +2,9 @@
 (function () {
   'use strict';
   var E = window.Esra;
-  var S = E.store, U = E.util, esc = E.charts.esc;
-  var OWNER_HASH = '61005123c3157ff8408968cf031c7df12c056cb5da93da32c4f7cb89360e0277';
-  var OWNER_FLAG = 'freeEsra.owner';
+  var S = E.store, U = E.util, C = E.cloud, esc = E.charts.esc;
+  var CFG = window.ESRA_CONFIG || {};
+  var role = null; // 'owner' | 'manager' | 'pending' | null (signed out)
   var OTHER = '__other';
 
   function $(sel, root) { return (root || document).querySelector(sel); }
@@ -20,13 +20,26 @@
     toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2600);
   }
   function saved(msg) {
-    toast(S.storageOk ? msg : 'Could not save in this browser — download a backup now!');
+    toast(navigator.onLine ? msg : msg + ' — will sync when online');
   }
+  function friendly(err) {
+    var code = err && err.code || '';
+    if (code === 'permission-denied') return 'Not allowed. Your account does not have access to this.';
+    if (code === 'unavailable') return 'No connection to the server. Changes will sync when online.';
+    if (/auth\/(wrong-password|invalid-credential|invalid-login-credentials|user-not-found|invalid-email)/.test(code)) return 'Wrong email or password.';
+    if (code === 'auth/too-many-requests') return 'Too many attempts. Wait a few minutes and try again.';
+    if (code === 'auth/network-request-failed') return 'No internet connection.';
+    if (code === 'auth/weak-password') return 'The password must be at least 6 characters.';
+    if (code === 'auth/email-already-in-use') return 'That email already has an account.';
+    return (err && err.message) || String(err);
+  }
+  E.onCloudError = function (err) { toast(friendly(err)); };
 
   // ---------------- tabs ----------------
   var current = 'income';
   function showTab(name) {
     if (['income', 'payment', 'owner'].indexOf(name) === -1) name = 'income';
+    if (name === 'owner' && role !== 'owner') name = 'income';
     current = name;
     $all('.tab').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === name)); });
     $all('.panel').forEach(function (p) { p.hidden = p.id !== 'tab-' + name; });
@@ -38,7 +51,7 @@
 
   // ---------------- shared inputs ----------------
   function fillMaterialSelects() {
-    var custom = S.db.memory.customMaterials;
+    var custom = S.state.memory.customMaterials;
     $all('select[data-material-select]').forEach(function (sel) {
       var val = sel.value;
       var html = '<option value="">Choose material…</option>';
@@ -127,7 +140,7 @@
 
   // ---------------- income form ----------------
   var inc = $('#income-form');
-  var priceMode = S.db.memory.priceMode || 'unit';
+  var priceMode = 'unit';
   var editingIncome = null;
 
   function setPriceMode(mode) {
@@ -355,7 +368,7 @@
 
   // ---------------- quick fill (repeat recent entries) ----------------
   function renderQuickFill(kind) {
-    var list = (kind === 'income' ? S.db.income : S.db.payments).slice()
+    var list = (kind === 'income' ? S.recentIncome() : S.recentPayments()).slice()
       .sort(function (a, b) { return (b.updatedAt || '').localeCompare(a.updatedAt || ''); });
     var seen = {}, picks = [];
     list.forEach(function (r) {
@@ -439,12 +452,13 @@
   function byNewest(a, b) { return b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''); }
 
   function renderRecent() {
-    var inRows = S.db.income.slice().sort(byNewest).slice(0, 15);
-    var payRows = S.db.payments.slice().sort(byNewest).slice(0, 15);
+    var allIn = S.recentIncome(), allPay = S.recentPayments();
+    var inRows = allIn.slice().sort(byNewest).slice(0, 50);
+    var payRows = allPay.slice().sort(byNewest).slice(0, 50);
     $('#income-recent').innerHTML = incomeTable(inRows, {});
     $('#payment-recent').innerHTML = paymentTable(payRows, {});
-    $('#income-recent-note').textContent = S.db.income.length > 15 ? 'Showing latest 15 of ' + S.db.income.length : '';
-    $('#payment-recent-note').textContent = S.db.payments.length > 15 ? 'Showing latest 15 of ' + S.db.payments.length : '';
+    $('#income-recent-note').textContent = 'Unpaid orders and the last 2 days' + (allIn.length > 50 ? ' · latest 50 of ' + allIn.length : '');
+    $('#payment-recent-note').textContent = 'Last 2 days' + (allPay.length > 50 ? ' · latest 50 of ' + allPay.length : '');
   }
 
   // table buttons (event delegation for every table)
@@ -453,8 +467,8 @@
     if (!b) return;
     var id = b.dataset.id;
     var act = b.dataset.act;
-    if (act === 'edit-income') loadIncome(S.db.income.find(function (r) { return r.id === id; }));
-    else if (act === 'edit-payment') loadPayment(S.db.payments.find(function (r) { return r.id === id; }));
+    if (act === 'edit-income') { var ri = S.findRecord('income', id); if (ri) loadIncome(ri); }
+    else if (act === 'edit-payment') { var rp = S.findRecord('payments', id); if (rp) loadPayment(rp); }
     else if (act === 'collect') openCollect(id);
     else if (act === 'del-income' && confirm('Delete this income record? This cannot be undone.')) { S.remove('income', id); saved('Deleted'); refreshAll(); }
     else if (act === 'del-payment' && confirm('Delete this payment record? This cannot be undone.')) { S.remove('payment', id); saved('Deleted'); refreshAll(); }
@@ -464,7 +478,7 @@
   var dlg = $('#collect-dialog');
   var collectId = null;
   function openCollect(id) {
-    var r = S.db.income.find(function (x) { return x.id === id; });
+    var r = S.findRecord('income', id);
     if (!r) return;
     collectId = id;
     $('#collect-info').textContent = r.material + ' · ' + U.prettyDate(r.date) + (r.phone ? ' · ' + r.phone : '') + ' — remaining ' + U.birr(r.remaining);
@@ -477,7 +491,7 @@
   dlg.addEventListener('close', function () {
     if (dlg.returnValue === 'ok' && collectId) {
       var amt = num($('#collect-form').elements.amount.value);
-      var r = S.db.income.find(function (x) { return x.id === collectId; });
+      var r = S.findRecord('income', collectId);
       if (r && amt > 0) {
         var received = Math.min(amt, r.remaining);
         S.receivePayment(collectId, received, today());
@@ -489,37 +503,51 @@
   });
 
   // ---------------- owner ----------------
-  function isOwner() { try { return sessionStorage.getItem(OWNER_FLAG) === '1'; } catch (e) { return ownerMem; } }
-  var ownerMem = false;
-  function setOwner(on) {
-    ownerMem = on;
-    try { if (on) sessionStorage.setItem(OWNER_FLAG, '1'); else sessionStorage.removeItem(OWNER_FLAG); } catch (e) { /* memory only */ }
+  // The owner signs in like everyone else, then confirms the password with
+  // Google's servers to open this tab. It locks again after a few idle minutes.
+  var ownerUnlockedAt = 0;
+  var LOCK_MS = (CFG.ownerLockMinutes || 10) * 60000;
+  function ownerOpen() { return role === 'owner' && ownerUnlockedAt && Date.now() - ownerUnlockedAt < LOCK_MS; }
+  function lockOwner() {
+    ownerUnlockedAt = 0;
+    stopReport();
+    S.setReport({ income: [], payments: [] });
+    lastReport = null;
+    if (current === 'owner') initOwner();
   }
+  ['pointerdown', 'keydown'].forEach(function (ev) {
+    document.addEventListener(ev, function () { if (ownerOpen()) ownerUnlockedAt = Date.now(); }, { passive: true });
+  });
+  setInterval(function () { if (ownerUnlockedAt && !ownerOpen()) lockOwner(); }, 15000);
 
   var ownerReady = false;
   function initOwner() {
-    var on = isOwner();
+    var on = ownerOpen();
     $('#owner-login').hidden = on;
     $('#owner-area').hidden = !on;
     if (!on) { setTimeout(function () { $('#owner-pass').focus(); }, 50); return; }
     if (!ownerReady) { ownerReady = true; applyPreset('month'); }
-    renderReport();
+    else watchReport();
+    startStaff();
   }
 
   $('#login-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var input = $('#owner-pass');
-    if (window.sha256Hex(input.value) === OWNER_HASH) {
-      setOwner(true);
+    var btn = $('#owner-unlock');
+    btn.disabled = true;
+    C.reauth(input.value).then(function () {
+      ownerUnlockedAt = Date.now();
       input.value = '';
       $('#login-error').hidden = true;
       initOwner();
-    } else {
+    }).catch(function (err) {
+      $('#login-error').textContent = friendly(err);
       $('#login-error').hidden = false;
       input.select();
-    }
+    }).then(function () { btn.disabled = false; });
   });
-  $('#btn-lock').addEventListener('click', function () { setOwner(false); initOwner(); });
+  $('#btn-lock').addEventListener('click', lockOwner);
   $('#btn-print').addEventListener('click', function () { window.print(); });
 
   // date range
@@ -537,7 +565,7 @@
     else if (p === 'all') { from = ''; to = ''; }
     rangeFrom.value = from; rangeTo.value = to;
     $all('#range-presets .chip').forEach(function (c) { c.setAttribute('aria-pressed', String(c.dataset.preset === p)); });
-    renderReport();
+    watchReport();
   }
   $('#range-presets').addEventListener('click', function (e) {
     var c = e.target.closest('[data-preset]');
@@ -546,7 +574,7 @@
   [rangeFrom, rangeTo].forEach(function (i) {
     i.addEventListener('change', function () {
       $all('#range-presets .chip').forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
-      renderReport();
+      watchReport();
     });
   });
 
@@ -556,9 +584,29 @@
     return { from: from, to: to };
   }
 
+  // Loads the chosen period plus the period before it (for the trend comparison).
+  var stopReportFn = null;
+  function stopReport() { if (stopReportFn) { stopReportFn(); stopReportFn = null; } }
+  function watchReport() {
+    if (!ownerOpen()) return;
+    stopReport();
+    var r = currentRange();
+    var from = r.from;
+    if (r.from && r.to) from = U.addDays(r.from, -(U.daysBetween(r.from, r.to) + 1));
+    $('#range-label').textContent = 'Loading…';
+    stopReportFn = C.watchRange(from, r.to, function (data) {
+      S.setReport(data);
+      renderReport();
+    }, function (err) {
+      $('#range-label').textContent = err.code === 'permission-denied'
+        ? 'The database refused the report. Check that the owner email in firestore.rules matches this login (see SETUP.md).'
+        : friendly(err);
+    });
+  }
+
   var lastReport = null;
   function renderReport() {
-    if (current !== 'owner' || !isOwner()) return;
+    if (current !== 'owner' || !ownerOpen()) return;
     var r = currentRange();
     var data = S.filter(r.from, r.to);
     var s = S.summarize(data.income, data.payments);
@@ -681,18 +729,24 @@
     ]), 'text/csv;charset=utf-8');
   });
   $('#btn-backup').addEventListener('click', function () {
-    download('free-esra-backup_' + today() + '.json', S.exportJSON(), 'application/json');
+    var btn = this;
+    btn.disabled = true;
+    C.exportAll().then(function (data) {
+      download('free-esra-backup_' + today() + '.json', JSON.stringify(data, null, 2), 'application/json');
+    }).catch(function (err) { toast(friendly(err)); }).then(function () { btn.disabled = false; });
   });
   $('#restore-file').addEventListener('change', function () {
     var file = this.files[0];
     if (!file) return;
-    if (!confirm('Restoring replaces ALL records on this device with the backup. Continue?')) { this.value = ''; return; }
+    if (!confirm('Upload all records from this backup to the online database? Records with the same ID are replaced.')) { this.value = ''; return; }
     var reader = new FileReader();
     var input = this;
     reader.onload = function () {
-      try { S.importJSON(reader.result); toast('Backup restored ✓'); refreshAll(); }
-      catch (err) { toast(err.message); }
-      input.value = '';
+      var data;
+      try { data = JSON.parse(reader.result); } catch (err) { toast('This file is not a Free Esra backup.'); input.value = ''; return; }
+      C.importAll(data).then(function (n) { toast('Uploaded ' + n + ' records ✓'); })
+        .catch(function (err) { toast(friendly(err)); })
+        .then(function () { input.value = ''; });
     };
     reader.readAsText(file);
   });
@@ -755,6 +809,47 @@
     }
   });
 
+  // ---------------- staff (owner) ----------------
+  var stopStaffFn = null;
+  function startStaff() {
+    if (stopStaffFn) return;
+    stopStaffFn = C.watchStaff(function (people) {
+      $('#staff-list').innerHTML = people.length
+        ? '<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead><tbody>' + people.map(function (p) {
+          return '<tr>' + td(p.name || '—') + td(p.email || p.id) + '<td><span class="tag-pill">Manager</span></td>' +
+            '<td><button class="tbl-btn danger" data-staff-remove="' + esc(p.id) + '">Remove</button></td></tr>';
+        }).join('') + '</tbody></table>'
+        : '<p class="empty">No managers yet. Add one above so they can sign in.</p>';
+    }, function (err) { $('#staff-list').innerHTML = '<p class="error">' + esc(friendly(err)) + '</p>'; });
+  }
+  function stopStaff() { if (stopStaffFn) { stopStaffFn(); stopStaffFn = null; } }
+
+  $('#staff-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = $('#staff-email').value.trim().toLowerCase();
+    var pass = $('#staff-pass').value;
+    if (!email) return toast('Enter the email.');
+    if (email === C.ownerEmail) return toast('That is the owner email.');
+    if (!pass || pass.length < 6) return toast('Give them a password of at least 6 characters.');
+    var btn = $('#staff-add');
+    btn.disabled = true;
+    C.addStaff(email, pass, $('#staff-name').value).then(function (res) {
+      toast('Manager added. Give them the email and password.');
+      $('#staff-form').reset();
+    }).catch(function (err) {
+      toast(err && err.code === 'auth/email-already-in-use'
+        ? 'That email already has a login. Use another email, or delete the old login in Firebase console → Authentication first.'
+        : friendly(err));
+    }).then(function () { btn.disabled = false; });
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-staff-remove]');
+    if (!b) return;
+    var email = b.dataset.staffRemove;
+    if (!confirm('Remove ' + email + '? They will no longer be able to see or add records.')) return;
+    C.removeStaff(email).then(function () { toast('Removed ' + email); }).catch(function (err) { toast(friendly(err)); });
+  });
+
   // ---------------- boot ----------------
   function refreshAll() {
     fillMaterialSelects();
@@ -771,13 +866,103 @@
     resizeTimer = setTimeout(function () { if (current === 'owner') renderReport(); }, 200);
   });
 
+  function updateSync() {
+    var el = $('#sync-status');
+    el.classList.toggle('off', !navigator.onLine);
+    el.querySelector('span').textContent = navigator.onLine ? 'Online' : 'Offline — saving on this device';
+  }
+  window.addEventListener('online', updateSync);
+  window.addEventListener('offline', updateSync);
+
+  function showScreen(name) {
+    $('#setup-screen').hidden = name !== 'setup';
+    $('#auth-screen').hidden = name !== 'auth';
+    $('#pending-screen').hidden = name !== 'pending';
+    $('#app-main').hidden = name !== 'app';
+    $('.tabs').hidden = name !== 'app';
+    $('#user-bar').hidden = name !== 'app' && name !== 'pending';
+  }
+
   buildChips(inc);
   buildChips(pay);
   inc.elements.date.value = today();
   pay.elements.date.value = today();
   setPriceMode(priceMode);
-  refreshAll();
   resetIncome();
   resetPayment();
-  showTab((location.hash || '#income').slice(1));
+  updateSync();
+
+  if (!C.configured || !C.init()) {
+    showScreen('setup');
+    return;
+  }
+  showScreen('auth');
+
+  var stopRecent = null, stopMemory = null, memoryLoaded = false;
+  function stopData() {
+    if (stopRecent) { stopRecent(); stopRecent = null; }
+    if (stopMemory) { stopMemory(); stopMemory = null; }
+    stopReport();
+    stopStaff();
+    ownerUnlockedAt = 0;
+    ownerReady = false;
+    memoryLoaded = false;
+    S.setRecent({ income: [], payments: [] });
+    S.setReport({ income: [], payments: [] });
+    S.setMemory(null);
+  }
+
+  C.onAuth(function (user, r) {
+    stopData();
+    role = r;
+    if (!user) { showScreen('auth'); return; }
+    $('#who').textContent = user.email;
+    if (r === 'pending') {
+      $('#pending-email').textContent = user.email;
+      showScreen('pending');
+      return;
+    }
+    $('.tab[data-tab="owner"]').hidden = r !== 'owner';
+    showScreen('app');
+    stopMemory = C.watchMemory(function (m) {
+      S.setMemory(m);
+      if (!memoryLoaded) { memoryLoaded = true; setPriceMode(S.state.memory.priceMode || 'unit'); }
+      fillMaterialSelects();
+      fillDatalists();
+    });
+    stopRecent = C.watchRecent(function (data) {
+      S.setRecent(data);
+      renderQuickFill('income');
+      renderQuickFill('payment');
+      renderRecent();
+    }, function (err) { toast(friendly(err)); });
+    refreshAll();
+    showTab((location.hash || '#income').slice(1));
+  });
+
+  $('#signin-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = $('#signin-btn');
+    btn.disabled = true;
+    $('#signin-error').hidden = true;
+    C.signIn($('#signin-email').value, $('#signin-pass').value).then(function () {
+      $('#signin-pass').value = '';
+    }).catch(function (err) {
+      $('#signin-error').textContent = friendly(err);
+      $('#signin-error').hidden = false;
+    }).then(function () { btn.disabled = false; });
+  });
+  $('#btn-forgot').addEventListener('click', function () {
+    var email = $('#signin-email').value.trim();
+    if (!email) { $('#signin-error').textContent = 'Type your email first, then press Forgot password.'; $('#signin-error').hidden = false; return; }
+    C.resetPassword(email).then(function () { toast('Password reset email sent to ' + email); })
+      .catch(function (err) { $('#signin-error').textContent = friendly(err); $('#signin-error').hidden = false; });
+  });
+  function signOut() {
+    resetIncome(); resetPayment();
+    C.signOut();
+  }
+  $('#btn-signout').addEventListener('click', signOut);
+  $('#btn-pending-signout').addEventListener('click', signOut);
+  $('#btn-recheck').addEventListener('click', function () { location.reload(); });
 })();

@@ -1,9 +1,8 @@
-/* Data layer: constants, saved records, input memory and report math. */
+/* Data layer: constants, records from the online database, input memory and report math. */
 (function (global) {
   'use strict';
   var E = global.Esra = global.Esra || {};
 
-  var DATA_KEY = 'freeEsra.data.v1';
 
   E.MATERIAL_GROUPS = [
     { label: 'Paper & board', items: ['Duplex', 'Kaki', 'White top', 'Black', 'Food grade', 'Art paper', 'Kamsur', 'Gemed', 'Cola'] },
@@ -16,57 +15,59 @@
   E.SIZES = ['XS', 'S', 'M', 'L', 'XL'];
   E.PRINT_TYPES = ['Full', 'One side', 'Two side', 'Digital UV', 'Offset'];
 
-  // ---------- storage ----------
-  function emptyDB() {
+  // ---------- state (filled live from the online database) ----------
+  function emptyMemory() {
     return {
-      version: 1,
-      income: [],
-      payments: [],
-      memory: {
-        history: {},                       // field -> most-recent-first list of values
-        lastByMaterial: { income: {}, payment: {} },
-        customMaterials: [],
-        priceMode: 'unit'
-      }
+      history: {},                       // field -> most-recent-first list of values
+      lastByMaterial: { income: {}, payment: {} },
+      customMaterials: [],
+      priceMode: 'unit'
     };
   }
+  var state = {
+    recent: { income: [], payments: [] },   // what the Income / Payments tabs show
+    report: { income: [], payments: [] },   // owner's selected period
+    memory: emptyMemory(),
+    // Saved on this device but not yet confirmed by the server (e.g. no internet).
+    pending: { income: {}, payments: {} }
+  };
 
-  function load() {
-    var db = emptyDB();
-    try {
-      var raw = localStorage.getItem(DATA_KEY);
-      if (raw) {
-        var parsed = JSON.parse(raw);
-        db.income = Array.isArray(parsed.income) ? parsed.income : [];
-        db.payments = Array.isArray(parsed.payments) ? parsed.payments : [];
-        if (parsed.memory) {
-          db.memory.history = parsed.memory.history || {};
-          db.memory.lastByMaterial = parsed.memory.lastByMaterial || db.memory.lastByMaterial;
-          db.memory.lastByMaterial.income = db.memory.lastByMaterial.income || {};
-          db.memory.lastByMaterial.payment = db.memory.lastByMaterial.payment || {};
-          db.memory.customMaterials = parsed.memory.customMaterials || [];
-          db.memory.priceMode = parsed.memory.priceMode || 'unit';
-        }
-      }
-    } catch (e) { /* storage unavailable or corrupt: start empty */ }
-    return db;
+  function setRecent(data) {
+    state.recent = data;
+    dropConfirmed();
   }
-
-  var db = load();
-  var storageOk = true;
-
-  function save() {
-    try {
-      localStorage.setItem(DATA_KEY, JSON.stringify(db));
-      storageOk = true;
-    } catch (e) {
-      storageOk = false;
+  function setReport(data) { state.report = data; }
+  function setMemory(m) {
+    var mem = emptyMemory();
+    if (m) {
+      mem.history = m.history || {};
+      mem.lastByMaterial = m.lastByMaterial || mem.lastByMaterial;
+      mem.lastByMaterial.income = mem.lastByMaterial.income || {};
+      mem.lastByMaterial.payment = mem.lastByMaterial.payment || {};
+      mem.customMaterials = m.customMaterials || [];
+      mem.priceMode = m.priceMode || 'unit';
     }
-    return storageOk;
+    state.memory = mem;
   }
-
-  function uid() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  function dropConfirmed() {
+    ['income', 'payments'].forEach(function (k) {
+      state.recent[k].forEach(function (r) { delete state.pending[k][r.id]; });
+    });
+  }
+  function withPending(kind) {
+    var list = state.recent[kind].slice();
+    var have = {};
+    list.forEach(function (r) { have[r.id] = 1; });
+    Object.keys(state.pending[kind]).forEach(function (id) { if (!have[id]) list.push(state.pending[kind][id]); });
+    return list;
+  }
+  function findRecord(kind, id) {
+    var lists = [state.recent[kind], state.report[kind]];
+    for (var i = 0; i < lists.length; i++) {
+      var r = lists[i].find(function (x) { return x.id === id; });
+      if (r) return r;
+    }
+    return state.pending[kind][id] || null;
   }
 
   // ---------- helpers ----------
@@ -101,29 +102,29 @@
     if (value === undefined || value === null) return;
     var v = String(value).trim();
     if (!v) return;
-    var list = db.memory.history[field] || [];
+    var list = state.memory.history[field] || [];
     list = list.filter(function (x) { return x.toLowerCase() !== v.toLowerCase(); });
     list.unshift(v);
-    db.memory.history[field] = list.slice(0, MAX_HISTORY);
+    state.memory.history[field] = list.slice(0, MAX_HISTORY);
   }
-  function suggestions(field) { return (db.memory.history[field] || []).slice(); }
+  function suggestions(field) { return (state.memory.history[field] || []).slice(); }
 
   function setLastFor(kind, material, values) {
     if (!material) return;
-    db.memory.lastByMaterial[kind][material.toLowerCase()] = values;
+    state.memory.lastByMaterial[kind][material.toLowerCase()] = values;
   }
   function lastFor(kind, material) {
     if (!material) return null;
-    return db.memory.lastByMaterial[kind][material.toLowerCase()] || null;
+    return state.memory.lastByMaterial[kind][material.toLowerCase()] || null;
   }
   function addCustomMaterial(name) {
     var all = allMaterials().map(function (m) { return m.toLowerCase(); });
-    if (name && all.indexOf(name.toLowerCase()) === -1) db.memory.customMaterials.push(name);
+    if (name && all.indexOf(name.toLowerCase()) === -1) state.memory.customMaterials.push(name);
   }
   function allMaterials() {
     var out = [];
     E.MATERIAL_GROUPS.forEach(function (g) { out = out.concat(g.items); });
-    return out.concat(db.memory.customMaterials);
+    return out.concat(state.memory.customMaterials);
   }
 
   // ---------- record math ----------
@@ -171,37 +172,53 @@
     };
   }
 
-  function stamp(rec, existing) {
-    var now = new Date().toISOString();
-    rec.id = existing ? existing.id : uid();
-    rec.createdAt = existing ? existing.createdAt : now;
-    rec.updatedAt = now;
-    if (existing && existing.receipts) rec.receipts = existing.receipts;
-    return rec;
+  function cloudErr(err) {
+    if (E.onCloudError) E.onCloudError(err);
   }
 
-  function upsert(list, rec) {
-    var i = list.findIndex(function (r) { return r.id === rec.id; });
-    if (i === -1) list.push(rec); else list[i] = rec;
-  }
-
+  // Returns the record right away; the server write continues in the background.
   function saveIncome(values, priceMode, id) {
-    var existing = id ? db.income.find(function (r) { return r.id === id; }) : null;
-    var rec = stamp(buildIncome(values, priceMode), existing);
-    upsert(db.income, rec);
-    db.memory.priceMode = rec.priceMode;
+    var rec = buildIncome(values, priceMode);
     learn('income', rec);
-    save();
+    if (id) {
+      var existing = findRecord('income', id) || {};
+      // keep payments received later in step with the edited total
+      rec.receipts = existing.receipts || [];
+      E.cloud.update('income', id, rec).catch(cloudErr);
+      rec.id = id;
+    } else {
+      rec.receipts = [];
+      var res = E.cloud.add('income', rec);
+      rec.id = res.id;
+      rec.createdAt = new Date().toISOString();
+      rec.pending = true;
+      state.pending.income[rec.id] = rec;
+      res.done.catch(function (err) { delete state.pending.income[rec.id]; cloudErr(err); });
+    }
+    saveMemory();
     return rec;
   }
 
   function savePayment(values, id) {
-    var existing = id ? db.payments.find(function (r) { return r.id === id; }) : null;
-    var rec = stamp(buildPayment(values), existing);
-    upsert(db.payments, rec);
+    var rec = buildPayment(values);
     learn('payment', rec);
-    save();
+    if (id) {
+      E.cloud.update('payments', id, rec).catch(cloudErr);
+      rec.id = id;
+    } else {
+      var res = E.cloud.add('payments', rec);
+      rec.id = res.id;
+      rec.createdAt = new Date().toISOString();
+      rec.pending = true;
+      state.pending.payments[rec.id] = rec;
+      res.done.catch(function (err) { delete state.pending.payments[rec.id]; cloudErr(err); });
+    }
+    saveMemory();
     return rec;
+  }
+
+  function saveMemory() {
+    E.cloud.saveMemory(JSON.parse(JSON.stringify(state.memory))).catch(cloudErr);
   }
 
   // Records what was typed so the next entry can be suggested / pre-filled.
@@ -212,6 +229,7 @@
     remember('notes', rec.notes);
     if (rec.qty) remember('qty', rec.qty);
     if (kind === 'income') {
+      state.memory.priceMode = rec.priceMode;
       if (rec.initialCost) remember('cost', rec.initialCost);
       if (rec.sellingPrice) remember('price', rec.sellingPrice);
       setLastFor('income', rec.material, {
@@ -227,23 +245,21 @@
   }
 
   function receivePayment(id, amount, date) {
-    var rec = db.income.find(function (r) { return r.id === id; });
+    var rec = findRecord('income', id);
     if (!rec) return null;
     amount = round2(num(amount));
     if (amount <= 0) return rec;
-    rec.receipts = rec.receipts || [];
-    rec.receipts.push({ date: date || isoDate(new Date()), amount: amount });
-    rec.paid = round2(rec.paid + amount);
-    rec.remaining = round2(Math.max(0, rec.total - rec.paid));
-    rec.updatedAt = new Date().toISOString();
-    save();
+    var receipts = (rec.receipts || []).concat([{ date: date || isoDate(new Date()), amount: amount }]);
+    var paid = round2(num(rec.paid) + amount);
+    var fields = { receipts: receipts, paid: paid, remaining: round2(Math.max(0, num(rec.total) - paid)) };
+    Object.assign(rec, fields);
+    E.cloud.update('income', id, fields).catch(cloudErr);
     return rec;
   }
 
   function remove(kind, id) {
-    var list = kind === 'income' ? db.income : db.payments;
-    var i = list.findIndex(function (r) { return r.id === id; });
-    if (i !== -1) { list.splice(i, 1); save(); }
+    var key = kind === 'income' ? 'income' : 'payments';
+    E.cloud.remove(key, id).catch(cloudErr);
   }
 
   // ---------- reporting ----------
@@ -252,8 +268,8 @@
   }
   function filter(from, to) {
     return {
-      income: db.income.filter(function (r) { return inRange(r, from, to); }),
-      payments: db.payments.filter(function (r) { return inRange(r, from, to); })
+      income: state.report.income.filter(function (r) { return inRange(r, from, to); }),
+      payments: state.report.payments.filter(function (r) { return inRange(r, from, to); })
     };
   }
 
@@ -330,22 +346,14 @@
     return { grain: grain, buckets: buckets };
   }
 
-  // ---------- backup ----------
-  function exportJSON() { return JSON.stringify(db, null, 2); }
-  function importJSON(text) {
-    var parsed = JSON.parse(text);
-    if (!parsed || !Array.isArray(parsed.income) || !Array.isArray(parsed.payments)) {
-      throw new Error('This file is not a Free Esra backup.');
-    }
-    try { localStorage.setItem(DATA_KEY, JSON.stringify(parsed)); } catch (e) { throw new Error('Could not save to this browser.'); }
-    db = load();
-  }
-
   E.store = {
-    get db() { return db; },
-    save: save,
-    get storageOk() { return storageOk; },
-    remember: remember,
+    get state() { return state; },
+    setRecent: setRecent,
+    setReport: setReport,
+    setMemory: setMemory,
+    recentIncome: function () { return withPending('income'); },
+    recentPayments: function () { return withPending('payments'); },
+    findRecord: findRecord,
     suggestions: suggestions,
     lastFor: lastFor,
     allMaterials: allMaterials,
@@ -357,9 +365,7 @@
     filter: filter,
     summarize: summarize,
     groupBy: groupBy,
-    timeSeries: timeSeries,
-    exportJSON: exportJSON,
-    importJSON: importJSON
+    timeSeries: timeSeries
   };
   E.util = {
     num: num, round2: round2, isoDate: isoDate, parseISO: parseISO, addDays: addDays, daysBetween: daysBetween,

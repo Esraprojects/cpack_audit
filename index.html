@@ -16,14 +16,54 @@
         <p class="brand-sub">Income &amp; cost manager</p>
       </div>
     </div>
-    <nav class="tabs" role="tablist" aria-label="Sections">
+    <nav class="tabs" role="tablist" aria-label="Sections" hidden>
       <button class="tab" role="tab" data-tab="income" aria-selected="true">Income</button>
       <button class="tab" role="tab" data-tab="payment" aria-selected="false">Payments</button>
-      <button class="tab" role="tab" data-tab="owner" aria-selected="false">Owner <span aria-hidden="true">&#128274;</span></button>
+      <button class="tab" role="tab" data-tab="owner" aria-selected="false" hidden>Owner <span aria-hidden="true">&#128274;</span></button>
     </nav>
+    <div class="user-bar" id="user-bar" hidden>
+      <span class="sync" id="sync-status" title="Connection"><i></i><span>Online</span></span>
+      <span class="who" id="who"></span>
+      <button class="btn ghost small-btn" id="btn-signout">Sign out</button>
+    </div>
   </header>
 
-  <main>
+  <!-- ================= SETUP NEEDED ================= -->
+  <section class="gate" id="setup-screen" hidden>
+    <div class="card gate-card">
+      <h2>Almost ready</h2>
+      <p>This app is not connected to its online database yet. Follow <b>SETUP.md</b> in the project files: create a free Firebase project, then paste its settings into <code>js/config.js</code>.</p>
+    </div>
+  </section>
+
+  <!-- ================= SIGN IN ================= -->
+  <section class="gate" id="auth-screen" hidden>
+    <div class="card gate-card">
+      <h2>Sign in</h2>
+      <p class="muted">Use the email and password the owner gave you.</p>
+      <form id="signin-form" class="stack">
+        <label class="field"><span>Email</span><input type="email" id="signin-email" autocomplete="username" required></label>
+        <label class="field"><span>Password</span><input type="password" id="signin-pass" autocomplete="current-password" required></label>
+        <button class="btn primary" type="submit" id="signin-btn">Sign in</button>
+        <button class="linkish" type="button" id="btn-forgot">Forgot password?</button>
+      </form>
+      <p class="error" id="signin-error" hidden></p>
+    </div>
+  </section>
+
+  <!-- ================= NOT APPROVED ================= -->
+  <section class="gate" id="pending-screen" hidden>
+    <div class="card gate-card">
+      <h2>Waiting for approval</h2>
+      <p>You are signed in as <b id="pending-email"></b>, but this account has not been added as staff. Ask the owner to add your email under Owner → Staff, then press Check again.</p>
+      <div class="row gap wrap">
+        <button class="btn primary" id="btn-recheck">Check again</button>
+        <button class="btn ghost" id="btn-pending-signout">Sign out</button>
+      </div>
+    </div>
+  </section>
+
+  <main id="app-main" hidden>
     <!-- ================= INCOME ================= -->
     <section id="tab-income" class="panel" role="tabpanel">
       <div class="card">
@@ -187,11 +227,11 @@
     <section id="tab-owner" class="panel" role="tabpanel" hidden>
       <div class="card login-card" id="owner-login">
         <h2>Owner access</h2>
-        <p class="muted">The full financial report is protected. Enter the owner password.</p>
+        <p class="muted">The full financial report is protected. Enter the owner password again to open it.</p>
         <form id="login-form" class="login-row">
           <label class="sr-only" for="owner-pass">Password</label>
-          <input type="password" id="owner-pass" placeholder="Password" autocomplete="current-password" required>
-          <button class="btn primary" type="submit">Unlock</button>
+          <input type="password" id="owner-pass" placeholder="Owner password" autocomplete="current-password" required>
+          <button class="btn primary" type="submit" id="owner-unlock">Unlock</button>
         </form>
         <p class="error" id="login-error" hidden>Wrong password. Try again.</p>
       </div>
@@ -282,12 +322,24 @@
         <div class="card no-print">
           <div class="card-head"><h2>Data &amp; settings</h2></div>
           <div class="settings-grid">
+            <div class="span-all">
+              <h3>Staff</h3>
+              <p class="muted small">People listed here can sign in and use the Income and Payments tabs. They see unpaid orders and the last few days of entries, never the report or the full history. Removing someone blocks them straight away.</p>
+              <form id="staff-form" class="staff-form">
+                <label class="field"><span>Name</span><input type="text" id="staff-name" placeholder="e.g. Hana" autocomplete="off"></label>
+                <label class="field"><span>Email</span><input type="email" id="staff-email" placeholder="manager@example.com" required autocomplete="off"></label>
+                <label class="field"><span>Password for them</span><input type="text" id="staff-pass" placeholder="at least 6 characters" minlength="6" required autocomplete="new-password"></label>
+                <button class="btn primary" type="submit" id="staff-add">Add manager</button>
+              </form>
+              <p class="muted small">This creates their login. Give them the email and password; they can change the password later with “Forgot password?” on the sign-in screen.</p>
+              <div class="table-wrap" id="staff-list"></div>
+            </div>
             <div>
               <h3>Backup</h3>
-              <p class="muted small">Records are saved in this browser. Download a backup regularly, and use it to move data to another device.</p>
+              <p class="muted small">All records are stored online in your Firebase database. Download a backup now and then to keep your own copy. A backup from the old offline version can be uploaded here.</p>
               <div class="row gap wrap">
                 <button class="btn ghost" id="btn-backup">Download backup</button>
-                <label class="btn ghost file-btn">Restore backup<input type="file" id="restore-file" accept="application/json,.json" hidden></label>
+                <label class="btn ghost file-btn">Upload backup<input type="file" id="restore-file" accept="application/json,.json" hidden></label>
               </div>
             </div>
             <div>
@@ -331,7 +383,11 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
 
-  <script src="js/sha256.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cloud.js"></script>
   <script src="js/store.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/insights.js"></script>
