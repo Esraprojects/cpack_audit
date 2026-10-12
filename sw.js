@@ -1,9 +1,10 @@
 /* CPack Audit service worker: lets the installed app open on weak or no internet.
    Network first, so updates (like a new js/config.js) show up as soon as you are online;
    the saved copy is used only when the network fails. Records are synced by Firebase itself. */
-var CACHE = 'cpack-audit-v1';
+var CACHE = 'cpack-audit-v2';
 var SHELL = [
-  './', './index.html', './css/style.css', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png',
+  './', './index.html', './css/style.css', './manifest.webmanifest',
+  './icons/logo.png', './icons/favicon-64.png', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png',
   './js/config.js', './js/cloud.js', './js/store.js', './js/charts.js', './js/insights.js', './js/ai.js', './js/setup.js', './js/app.js',
   'https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js',

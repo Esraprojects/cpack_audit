@@ -89,7 +89,7 @@ h3 { font-size: .95rem; margin-bottom: 6px; }
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand h1 { font-size: 1.1rem; }
 .brand-sub { margin: 0; font-size: .78rem; color: var(--muted); }
-.brand-mark { display: block; width: 38px; height: 38px; border-radius: 10px; }
+.brand-mark { display: block; width: 44px; height: 44px; object-fit: contain; }
 .tabs { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 12px; }
 .tab {
   border: 0; background: transparent; color: var(--text-2); font: inherit; font-weight: 600;

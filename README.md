@@ -80,6 +80,6 @@ js/app.js         screens and buttons
 firestore.rules   database security rules (who can read and write what)
 netlify.toml      website hosting settings
 firebase.json     settings for the Firebase command-line tool (optional)
-manifest.webmanifest, icons/   home-screen app icon for Android and iPhone
+manifest.webmanifest, icons/   CraftPack logo and home-screen icons for Android and iPhone
 sw.js             lets the installed app open on weak internet
 ```
