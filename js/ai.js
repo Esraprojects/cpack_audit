@@ -5,7 +5,7 @@
   var E = global.Esra = global.Esra || {};
   var KEY_STORE = 'cpackAudit.claudeKey';
   var SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.129.0/+esm';
-  var MODEL = 'claude-opus-5-5';
+  var MODEL = 'claude-opus-5';
 
   function getKey() { try { return localStorage.getItem(KEY_STORE) || ''; } catch (e) { return ''; } }
   function setKey(k) { try { if (k) localStorage.setItem(KEY_STORE, k); else localStorage.removeItem(KEY_STORE); return true; } catch (e) { return false; } }

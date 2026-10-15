@@ -678,8 +678,10 @@
     // debtors
     var debt = S.groupBy(data.income.filter(function (x) { return x.remaining > 0; }), function (x) { return x.phone || 'No phone'; }, { owed: function (x) { return x.remaining; } })
       .sort(function (a, b) { return b.owed - a.owed; });
+    var debtT = debt.reduce(function (a, d) { a.count += num(d.count); a.owed += num(d.owed); return a; }, { count: 0, owed: 0 });
     $('#debtors').innerHTML = debt.length ? '<table><thead><tr><th>Phone</th><th class="num">Orders</th><th class="num">Owes (Br)</th></tr></thead><tbody>' +
-      debt.map(function (d) { return '<tr>' + td(d.key) + td(d.count, 'num') + td(money(d.owed), 'num neg') + '</tr>'; }).join('') + '</tbody></table>'
+      debt.map(function (d) { return '<tr>' + td(d.key) + td(d.count, 'num') + td(money(d.owed), 'num neg') + '</tr>'; }).join('') + '</tbody>' +
+      '<tfoot><tr><td>Total (' + debt.length + ')</td>' + td(debtT.count, 'num') + td(money(debtT.owed), 'num neg') + '</tr></tfoot></table>'
       : '<p class="empty">Everyone has paid in full for this period.</p>';
 
     // strategies

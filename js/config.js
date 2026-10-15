@@ -4,16 +4,16 @@
 window.ESRA_CONFIG = {
   // Firebase console → Project settings → General → Your apps → Web app → "firebaseConfig"
   firebase: {
-    apiKey: 'PASTE_API_KEY',
-    authDomain: 'PASTE_PROJECT_ID.firebaseapp.com',
-    projectId: 'PASTE_PROJECT_ID',
-    storageBucket: 'PASTE_PROJECT_ID.firebasestorage.app',
-    messagingSenderId: 'PASTE_SENDER_ID',
-    appId: 'PASTE_APP_ID'
+    apiKey: 'AIzaSyBMVwsed896gU4DkplEGyMbovOd0TEj__8',
+    authDomain: 'cpack-audit-ade44.firebaseapp.com',
+    projectId: 'cpack-audit-ade44',
+    storageBucket: 'cpack-audit-ade44.firebasestorage.app',
+    messagingSenderId: '788937379276',
+    appId: '1:788937379276:web:b24cf6fcd48e310bebe169'
   },
 
   // The owner's login email. Must be the same email written in firestore.rules.
-  ownerEmail: 'OWNER_EMAIL_HERE',
+  ownerEmail: 'owners.cpack@gmail.com',
 
   // Ask for the owner password again after this many minutes without activity on the Owner tab.
   ownerLockMinutes: 10
