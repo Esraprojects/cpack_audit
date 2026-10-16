@@ -143,12 +143,26 @@
   var priceMode = 'unit';
   var editingIncome = null;
 
+  // Every field label carries an Amharic line under the English one. These two
+  // labels also change with the per-unit / whole-order switch, so both halves
+  // are rebuilt together — a plain textContent write would drop the Amharic.
+  function setFieldLabel(el, en, am) {
+    if (!el) return;
+    el.textContent = en + ' ';
+    var small = document.createElement('small');
+    small.className = 'am';
+    small.lang = 'am';
+    small.textContent = am;
+    el.appendChild(small);
+  }
+
   function setPriceMode(mode) {
     priceMode = mode;
     $all('[data-price-mode]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.priceMode === mode)); });
     var per = mode === 'unit' ? 'Birr per unit' : 'Birr for whole order';
-    $('[data-label-cost]').textContent = 'Initial cost (' + per + ')';
-    $('[data-label-price]').textContent = 'Selling price (' + per + ')';
+    var perAm = mode === 'unit' ? 'በአንዱ' : 'ለጠቅላላው';
+    setFieldLabel($('[data-label-cost]'), 'Initial cost (' + per + ')', 'የመነሻ ዋጋ (' + perAm + ')');
+    setFieldLabel($('[data-label-price]'), 'Selling price (' + per + ')', 'የመሸጫ ዋጋ (' + perAm + ')');
     recalcIncome();
   }
   $all('[data-price-mode]').forEach(function (b) { b.addEventListener('click', function () { setPriceMode(b.dataset.priceMode); }); });
@@ -407,6 +421,19 @@
   function td(v, cls) { return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(v === undefined || v === null ? '' : v) + '</td>'; }
   function money(v) { return U.birr(v).replace(' Br', ''); }
 
+  // Owner-only: when the row was last touched and by whom, so an edit a manager
+  // made days after the sale date is visible rather than hidden behind it.
+  // Rows nobody has edited since fall back to their creation stamp; a record
+  // still travelling to the server has no server time yet and says so.
+  function stampCell(r) {
+    var iso = r.updatedAt || r.createdAt;
+    var who = r.updatedBy || r.createdBy || '';
+    if (!iso) return '<td class="stamp">' + (r.pending ? '<span class="muted">Saving\u2026</span>' : '') + '</td>';
+    var title = U.fullStamp(iso) + (who ? ' \u2014 ' + who : '');
+    return '<td class="stamp" title="' + esc(title) + '">' + esc(U.prettyStamp(iso)) +
+      (who ? '<span class="stamp-who">' + esc(who.split('@')[0]) + '</span>' : '') + '</td>';
+  }
+
   function incomeTable(rows, opts) {
     if (!rows.length) return '<p class="empty">No income records yet.</p>';
     var t = { qty: 0, totalCost: 0, total: 0, paid: 0, remaining: 0, profit: 0 };
@@ -416,14 +443,15 @@
         td(r.qty, 'num') + td(money(r.totalCost), 'num') + td(money(r.total), 'num') + td(money(r.paid), 'num') +
         td(money(r.remaining), 'num' + (r.remaining > 0 ? ' neg' : '')) +
         (opts.owner ? td(money(r.profit), 'num' + (r.profit < 0 ? ' neg' : '')) : '') +
-        td(r.phone) + td(r.notes) + '</tr>';
+        td(r.phone) + td(r.notes) + (opts.owner ? stampCell(r) : '') + '</tr>';
     }).join('');
     var foot = opts.totals ? '<tfoot><tr><td class="tbl-actions"></td><td colspan="5">Total (' + rows.length + ')</td>' + td(U.round2(t.qty), 'num') + td(money(t.totalCost), 'num') +
       td(money(t.total), 'num') + td(money(t.paid), 'num') + td(money(t.remaining), 'num') + (opts.owner ? td(money(t.profit), 'num') : '') +
-      '<td colspan="2"></td></tr></tfoot>' : '';
+      '<td colspan="' + (opts.owner ? 3 : 2) + '"></td></tr></tfoot>' : '';
     return '<table><thead><tr><th class="tbl-actions"></th><th>Date</th><th>Material</th><th>GSM</th><th>Size</th><th>Print</th><th class="num">Amount</th><th class="num">Initial cost</th>' +
       '<th class="num">Total Br</th><th class="num">Paid</th><th class="num">Remaining</th>' + (opts.owner ? '<th class="num">Profit</th>' : '') +
-      '<th>Phone</th><th>Other reasons</th></tr></thead><tbody>' + body + '</tbody>' + foot + '</table>';
+      '<th>Phone</th><th>Other reasons</th>' + (opts.owner ? '<th>Last edited</th>' : '') +
+      '</tr></thead><tbody>' + body + '</tbody>' + foot + '</table>';
   }
 
   function incomeActions(r, opts) {
@@ -442,11 +470,14 @@
       return '<tr><td class="tbl-actions"><button class="tbl-btn" data-act="edit-payment" data-id="' + r.id + '">Edit</button>' +
         (opts.owner ? ' <button class="tbl-btn danger" data-act="del-payment" data-id="' + r.id + '">Delete</button>' : '') + '</td>' +
         td(U.prettyDate(r.date)) + td(r.material) + td(r.gsm) + td(r.size) + td(r.type) +
-        td(r.qty || '', 'num') + td(money(r.amount), 'num') + td(r.phone) + td(r.notes) + '</tr>';
+        td(r.qty || '', 'num') + td(money(r.amount), 'num') + td(r.phone) + td(r.notes) +
+        (opts.owner ? stampCell(r) : '') + '</tr>';
     }).join('');
-    var foot = opts.totals ? '<tfoot><tr><td class="tbl-actions"></td><td colspan="6">Total (' + rows.length + ')</td>' + td(money(total), 'num') + '<td colspan="2"></td></tr></tfoot>' : '';
+    var foot = opts.totals ? '<tfoot><tr><td class="tbl-actions"></td><td colspan="6">Total (' + rows.length + ')</td>' + td(money(total), 'num') +
+      '<td colspan="' + (opts.owner ? 3 : 2) + '"></td></tr></tfoot>' : '';
     return '<table><thead><tr><th class="tbl-actions"></th><th>Date</th><th>Material</th><th>GSM</th><th>Size</th><th>Type</th><th class="num">Qty</th><th class="num">Amount Br</th>' +
-      '<th>Phone</th><th>Other reasons</th></tr></thead><tbody>' + body + '</tbody>' + foot + '</table>';
+      '<th>Phone</th><th>Other reasons</th>' + (opts.owner ? '<th>Last edited</th>' : '') +
+      '</tr></thead><tbody>' + body + '</tbody>' + foot + '</table>';
   }
 
   function byNewest(a, b) { return b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''); }

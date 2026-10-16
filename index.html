@@ -74,8 +74,8 @@
       <h2>Sign in</h2>
       <p class="muted">Use the email and password the owner gave you.</p>
       <form id="signin-form" class="stack">
-        <label class="field"><span>Email</span><input type="email" id="signin-email" autocomplete="username" required></label>
-        <label class="field"><span>Password</span><input type="password" id="signin-pass" autocomplete="current-password" required></label>
+        <label class="field"><span>Email <small class="am" lang="am">ኢሜይል</small></span><input type="email" id="signin-email" autocomplete="username" required></label>
+        <label class="field"><span>Password <small class="am" lang="am">የይለፍ ቃል</small></span><input type="password" id="signin-pass" autocomplete="current-password" required></label>
         <button class="btn primary" type="submit" id="signin-btn">Sign in</button>
         <button class="linkish" type="button" id="btn-forgot">Forgot password?</button>
       </form>
@@ -115,57 +115,57 @@
           <input type="hidden" name="id">
           <div class="grid">
             <label class="field">
-              <span>Date</span>
+              <span>Date <small class="am" lang="am">ቀን</small></span>
               <input type="date" name="date" required>
             </label>
             <label class="field">
-              <span>Material</span>
+              <span>Material <small class="am" lang="am">ዕቃ</small></span>
               <select name="material" required data-material-select></select>
               <input type="text" name="materialOther" class="other-input" placeholder="Type the new material" hidden>
             </label>
             <label class="field">
-              <span>GSM</span>
+              <span>GSM <small class="am" lang="am">ግራም</small></span>
               <input type="number" name="gsm" inputmode="numeric" min="0" step="any" list="dl-gsm" placeholder="e.g. 300">
             </label>
             <div class="field span-2">
-              <span>Size</span>
+              <span>Size <small class="am" lang="am">መጠን</small></span>
               <div class="chips" data-chip-group="size"></div>
             </div>
             <div class="field span-2">
-              <span>Print type</span>
+              <span>Print type <small class="am" lang="am">የህትመት ዓይነት</small></span>
               <div class="chips" data-chip-group="printType"></div>
             </div>
             <label class="field">
-              <span>Amount (quantity)</span>
+              <span>Amount (quantity) <small class="am" lang="am">ብዛት</small></span>
               <input type="number" name="qty" inputmode="decimal" min="0" step="any" list="dl-qty" placeholder="e.g. 500">
             </label>
             <label class="field">
-              <span data-label-cost>Initial cost (Birr per unit)</span>
+              <span data-label-cost>Initial cost (Birr per unit) <small class="am" lang="am">የመነሻ ዋጋ (በአንዱ)</small></span>
               <input type="number" name="initialCost" inputmode="decimal" min="0" step="any" list="dl-cost" placeholder="0.00">
             </label>
             <label class="field">
-              <span data-label-price>Selling price (Birr per unit)</span>
+              <span data-label-price>Selling price (Birr per unit) <small class="am" lang="am">የመሸጫ ዋጋ (በአንዱ)</small></span>
               <input type="number" name="sellingPrice" inputmode="decimal" min="0" step="any" list="dl-price" placeholder="0.00">
             </label>
             <label class="field">
-              <span>Total Birr to be paid</span>
+              <span>Total Birr to be paid <small class="am" lang="am">ጠቅላላ ብር</small></span>
               <input type="number" name="total" inputmode="decimal" min="0" step="any" placeholder="auto">
               <small class="hint" id="total-hint">Calculated automatically — you can type over it.</small>
             </label>
             <label class="field">
-              <span>Paid (Birr)</span>
+              <span>Paid (Birr) <small class="am" lang="am">የተከፈለ</small></span>
               <input type="number" name="paid" inputmode="decimal" min="0" step="any" placeholder="0.00">
             </label>
             <label class="field">
-              <span>Remaining (Birr)</span>
+              <span>Remaining (Birr) <small class="am" lang="am">ቀሪ</small></span>
               <input type="text" name="remaining" readonly tabindex="-1" class="readonly">
             </label>
             <label class="field">
-              <span>Phone number</span>
+              <span>Phone number <small class="am" lang="am">ስልክ ቁጥር</small></span>
               <input type="tel" name="phone" inputmode="tel" list="dl-phone" placeholder="09…">
             </label>
             <label class="field span-2">
-              <span>Other reasons / notes</span>
+              <span>Other reasons / notes <small class="am" lang="am">ሌላ ምክንያት / ማስታወሻ</small></span>
               <input type="text" name="notes" list="dl-notes" placeholder="Customer name, delivery, design…">
             </label>
           </div>
@@ -201,40 +201,40 @@
           <input type="hidden" name="id">
           <div class="grid">
             <label class="field">
-              <span>Date</span>
+              <span>Date <small class="am" lang="am">ቀን</small></span>
               <input type="date" name="date" required>
             </label>
             <label class="field">
-              <span>Material</span>
+              <span>Material <small class="am" lang="am">ዕቃ</small></span>
               <select name="material" required data-material-select></select>
               <input type="text" name="materialOther" class="other-input" placeholder="Type the new material / item" hidden>
             </label>
             <label class="field">
-              <span>GSM</span>
+              <span>GSM <small class="am" lang="am">ግራም</small></span>
               <input type="number" name="gsm" inputmode="numeric" min="0" step="any" list="dl-gsm" placeholder="e.g. 300">
             </label>
             <div class="field span-2">
-              <span>Size</span>
+              <span>Size <small class="am" lang="am">መጠን</small></span>
               <div class="chips" data-chip-group="size"></div>
             </div>
             <div class="field span-2">
-              <span>Type</span>
+              <span>Type <small class="am" lang="am">ዓይነት</small></span>
               <div class="chips" data-chip-group="type"></div>
             </div>
             <label class="field">
-              <span>Quantity <span class="muted">(optional)</span></span>
+              <span>Quantity <span class="muted">(optional)</span> <small class="am" lang="am">ብዛት</small></span>
               <input type="number" name="qty" inputmode="decimal" min="0" step="any" list="dl-qty" placeholder="e.g. 10">
             </label>
             <label class="field">
-              <span>Amount paid (Birr)</span>
+              <span>Amount paid (Birr) <small class="am" lang="am">የተከፈለ ብር</small></span>
               <input type="number" name="amount" inputmode="decimal" min="0" step="any" list="dl-pay" placeholder="0.00" required>
             </label>
             <label class="field">
-              <span>Phone number</span>
+              <span>Phone number <small class="am" lang="am">ስልክ ቁጥር</small></span>
               <input type="tel" name="phone" inputmode="tel" list="dl-phone" placeholder="Supplier phone">
             </label>
             <label class="field span-2">
-              <span>Other reasons / notes</span>
+              <span>Other reasons / notes <small class="am" lang="am">ሌላ ምክንያት / ማስታወሻ</small></span>
               <input type="text" name="notes" list="dl-notes" placeholder="Supplier, transport, rent, salary…">
             </label>
           </div>
@@ -359,7 +359,7 @@
               <p class="muted small">People listed here can sign in and use the Income and Payments tabs. They see unpaid orders and the last few days of entries, never the report or the full history. Removing someone blocks them straight away.</p>
               <form id="staff-form" class="staff-form">
                 <label class="field"><span>Name</span><input type="text" id="staff-name" placeholder="e.g. Hana" autocomplete="off"></label>
-                <label class="field"><span>Email</span><input type="email" id="staff-email" placeholder="manager@example.com" required autocomplete="off"></label>
+                <label class="field"><span>Email <small class="am" lang="am">ኢሜይል</small></span><input type="email" id="staff-email" placeholder="manager@example.com" required autocomplete="off"></label>
                 <label class="field"><span>Password for them</span><input type="text" id="staff-pass" placeholder="at least 6 characters" minlength="6" required autocomplete="new-password"></label>
                 <button class="btn primary" type="submit" id="staff-add">Add manager</button>
               </form>

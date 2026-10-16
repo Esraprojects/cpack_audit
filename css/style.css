@@ -116,6 +116,8 @@ main { max-width: 1100px; margin: 0 auto; padding: 16px; padding-bottom: calc(24
 @media (min-width: 900px) { .grid { grid-template-columns: repeat(3, 1fr); } .span-2 { grid-column: span 3; } }
 .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .field > span { font-size: .82rem; font-weight: 600; color: var(--text-2); }
+/* Amharic sits beside the English label and wraps under it when space runs out. */
+small.am { font-weight: 400; font-size: .82rem; color: var(--muted); text-transform: none; letter-spacing: 0; }
 .field.compact { flex: 0 1 170px; }
 input, select {
   font: inherit; font-size: 16px; /* 16px stops iPhone Safari zooming in on tap */
@@ -173,6 +175,22 @@ tr:hover td { background: var(--surface-2); }
   border: 1px solid var(--border); background: var(--surface); color: var(--text);
 }
 .tbl-btn.danger { color: var(--danger); }
+/* Owner's "Last edited" cell: time on top, who did it underneath. */
+td.stamp { font-size: .78rem; color: var(--text-2); }
+.stamp-who { display: block; font-size: .72rem; color: var(--muted); }
+/* The row's buttons stay put while a wide table is scrolled sideways on a phone. */
+.table-wrap th.tbl-actions, .table-wrap td.tbl-actions {
+  position: sticky; left: 0; z-index: 2;
+  background: var(--surface); border-right: 1px solid var(--grid);
+}
+.table-wrap thead th.tbl-actions { z-index: 3; }
+tr:hover td.tbl-actions { background: var(--surface-2); }
+/* Touch screens get a real tap target instead of a 24px one. */
+@media (hover: none) {
+  .tbl-btn { padding: 8px 12px; font-size: .82rem; min-height: 36px; }
+  .tbl-actions { white-space: nowrap; }
+  .tbl-actions .tbl-btn + .tbl-btn { margin-left: 4px; }
+}
 .empty { color: var(--muted); padding: 14px 4px; }
 
 /* sign-in screens + user bar */
@@ -265,6 +283,9 @@ dialog::backdrop { background: rgba(0, 0, 0, .4); }
   .user-bar { width: 100%; justify-content: space-between; }
   main { padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
   .card { padding: 14px; }
+  table { font-size: .8rem; }
+  th, td { padding: 7px 8px; }
+  .card-head { flex-wrap: wrap; }
 }
 
 @media print {

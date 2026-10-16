@@ -95,6 +95,28 @@
     if (!s) return '';
     return parseISO(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   }
+  // createdAt / updatedAt arrive as full ISO timestamps, so they are read with
+  // new Date() and shown in the phone's own time zone, not the stored UTC.
+  function stampDate(s) {
+    var d = s ? new Date(s) : null;
+    return d && !isNaN(d.getTime()) ? d : null;
+  }
+  // Short form for the table cell: "16 Oct, 2:45 pm".
+  function prettyStamp(s) {
+    var d = stampDate(s);
+    if (!d) return '';
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ', ' +
+      d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+  // Long form for the hover tooltip, including the year and the seconds.
+  function fullStamp(s) {
+    var d = stampDate(s);
+    if (!d) return '';
+    return d.toLocaleString('en-GB', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
+    });
+  }
 
   // ---------- memory ("remember my inputs") ----------
   var MAX_HISTORY = 30;
@@ -369,6 +391,7 @@
   };
   E.util = {
     num: num, round2: round2, isoDate: isoDate, parseISO: parseISO, addDays: addDays, daysBetween: daysBetween,
-    birr: birr, birrShort: birrShort, pct: pct, prettyDate: prettyDate
+    birr: birr, birrShort: birrShort, pct: pct, prettyDate: prettyDate,
+    prettyStamp: prettyStamp, fullStamp: fullStamp
   };
 })(window);
