@@ -4,6 +4,17 @@
   },
   "hosting": {
     "public": ".",
-    "ignore": ["firebase.json", "netlify.toml", "firestore.rules", "*.md", "**/.*", "**/node_modules/**"]
+    "ignore": [
+      "firebase.json",
+      "netlify.toml",
+      "firestore.rules",
+      "*.md",
+      "**/.*",
+      "**/.*/**",
+      ".git/**",
+      ".firebase/**",
+      "**/node_modules/**"
+    ],
+    "site": "cpack-audit-ade44"
   }
 }
