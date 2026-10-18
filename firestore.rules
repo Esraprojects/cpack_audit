@@ -46,7 +46,13 @@ service cloud.firestore {
     }
     function validPayment() {
       let d = request.resource.data;
-      return d.date is string && d.material is string && d.amount is number && d.amount >= 0;
+      return d.date is string && d.material is string && d.amount is number && d.amount >= 0
+        // A receipt photo is stored inside the record, so cap it well under
+        // Firestore's 1 MiB document limit.
+        && (!('receipt' in d) || (d.receipt is string && d.receipt.size() < 800000))
+        && (!('method' in d) || d.method in ['Cash', 'Bank transfer'])
+        && (!('bank' in d) || (d.bank is string && d.bank.size() < 120))
+        && (!('ref' in d) || (d.ref is string && d.ref.size() < 120));
     }
 
     // Staff list: only the owner manages it. A person may check their own entry.

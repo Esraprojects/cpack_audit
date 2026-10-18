@@ -128,6 +128,14 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 input.readonly { background: var(--surface-2); font-weight: 600; }
 input.autofilled { background: var(--accent-soft); transition: background 1.2s; }
 .other-input { margin-top: 6px; }
+
+/* Receipt photo: attached in the Payments form, stored inside the record. */
+.receipt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.receipt-preview { display: inline-block; margin-top: 8px; border: 1px solid var(--border); border-radius: 10px; padding: 4px; background: var(--surface-2); line-height: 0; }
+.receipt-preview img { max-width: 160px; max-height: 160px; border-radius: 7px; display: block; }
+.receipt-link { color: var(--accent); font-weight: 600; text-decoration: none; }
+.receipt-link:hover, .receipt-link:focus-visible { text-decoration: underline; }
+@media print { .receipt-row, .receipt-preview { display: none; } }
 .hint { color: var(--muted); font-size: .75rem; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }

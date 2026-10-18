@@ -71,6 +71,27 @@
     });
   }
 
+  function fillBankSelects() {
+    var custom = S.state.memory.customBanks;
+    $all('select[data-bank-select]').forEach(function (sel) {
+      var val = sel.value;
+      var html = '<option value="">Choose bank / wallet\u2026</option>';
+      E.BANK_GROUPS.forEach(function (g) {
+        html += '<optgroup label="' + esc(g.label) + '">' + g.items.map(function (b) {
+          return '<option value="' + esc(b) + '">' + esc(b) + '</option>';
+        }).join('') + '</optgroup>';
+      });
+      if (custom.length) {
+        html += '<optgroup label="Added by you">' + custom.map(function (b) {
+          return '<option value="' + esc(b) + '">' + esc(b) + '</option>';
+        }).join('') + '</optgroup>';
+      }
+      html += '<option value="' + OTHER + '">+ Other (type new)\u2026</option>';
+      sel.innerHTML = html;
+      sel.value = val;
+    });
+  }
+
   function fillDatalists() {
     var map = { 'dl-gsm': 'gsm', 'dl-qty': 'qty', 'dl-cost': 'cost', 'dl-price': 'price', 'dl-pay': 'pay', 'dl-phone': 'phone', 'dl-notes': 'notes' };
     Object.keys(map).forEach(function (id) {
@@ -81,7 +102,7 @@
   function buildChips(form) {
     $all('[data-chip-group]', form).forEach(function (box) {
       var group = box.dataset.chipGroup;
-      var values = group === 'size' ? E.SIZES : E.PRINT_TYPES;
+      var values = group === 'size' ? E.SIZES : group === 'method' ? E.PAY_METHODS : E.PRINT_TYPES;
       box.innerHTML = values.map(function (v) {
         return '<button type="button" class="chip" aria-pressed="false" data-value="' + esc(v) + '">' + esc(v) + '</button>';
       }).join('');
@@ -102,6 +123,27 @@
     $all('[data-chip-group="' + group + '"] .chip', form).forEach(function (b) {
       b.setAttribute('aria-pressed', String(!!value && b.dataset.value.toLowerCase() === String(value).toLowerCase()));
     });
+  }
+
+  function bankValue(form) {
+    var sel = form.elements.bank;
+    if (!sel) return '';
+    if (sel.value === OTHER) return form.elements.bankOther.value.trim();
+    return sel.value;
+  }
+  function setBank(form, value) {
+    var sel = form.elements.bank;
+    if (!sel) return;
+    var exists = $all('option', sel).some(function (o) { return o.value === value; });
+    if (!exists && value) {
+      sel.value = OTHER;
+      form.elements.bankOther.hidden = false;
+      form.elements.bankOther.value = value;
+    } else {
+      sel.value = value || '';
+      form.elements.bankOther.hidden = true;
+      form.elements.bankOther.value = '';
+    }
   }
 
   function materialValue(form) {
@@ -294,6 +336,94 @@
   var pay = $('#payment-form');
   var editingPayment = null;
 
+  // ---------------- payment method + receipt photo ----------------
+  // Cloud Storage for Firebase needs the paid plan, so a receipt is shrunk here
+  // and stored inside the record itself. Firestore caps one record at 1 MiB.
+  var payReceipt = '';
+  var receiptPick = $('[data-receipt-pick]', pay);
+  var receiptRemove = $('[data-receipt-remove]', pay);
+  var receiptNote = $('[data-receipt-note]', pay);
+  var receiptPreview = $('[data-receipt-preview]', pay);
+  var RECEIPT_HINT = 'Sent or received \u2014 the photo is shrunk before saving.';
+
+  function syncPayMethod() {
+    var transfer = getChip(pay, 'method') === 'Bank transfer';
+    $all('.bank-field', pay).forEach(function (el) { el.hidden = !transfer; });
+    if (!transfer && pay.elements.ref) {
+      setBank(pay, '');
+      pay.elements.ref.value = '';
+    }
+  }
+
+  function shrinkImage(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var max = 1400, w = img.width, h = img.height;
+        if (!w || !h) return reject(new Error('unreadable'));
+        if (w > max || h > max) {
+          var k = Math.min(max / w, max / h);
+          w = Math.round(w * k); h = Math.round(h * k);
+        }
+        var c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        var q = 0.72, out = c.toDataURL('image/jpeg', q);
+        while (out.length > E.RECEIPT_MAX_BYTES && q > 0.3) {
+          q -= 0.12;
+          out = c.toDataURL('image/jpeg', q);
+        }
+        if (out.length > E.RECEIPT_MAX_BYTES) return reject(new Error('too big'));
+        resolve(out);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('unreadable')); };
+      img.src = url;
+    });
+  }
+
+  function showReceipt(data) {
+    payReceipt = data || '';
+    var has = !!payReceipt;
+    var img = $('img', receiptPreview);
+    receiptPreview.hidden = !has;
+    receiptRemove.hidden = !has;
+    if (has) {
+      img.src = payReceipt;
+      receiptPreview.href = payReceipt;
+      receiptNote.textContent = 'Attached \u00b7 ' + Math.round(payReceipt.length / 1024) + ' KB';
+    } else {
+      img.removeAttribute('src');
+      receiptPreview.removeAttribute('href');
+      receiptNote.textContent = RECEIPT_HINT;
+    }
+    receiptPick.textContent = has ? 'Replace photo' : 'Attach photo';
+  }
+
+  receiptPick.addEventListener('click', function () { pay.elements.receiptFile.click(); });
+  receiptRemove.addEventListener('click', function () {
+    pay.elements.receiptFile.value = '';
+    showReceipt('');
+  });
+  pay.elements.receiptFile.addEventListener('change', function () {
+    var file = this.files && this.files[0];
+    if (!file) return;
+    receiptNote.textContent = 'Shrinking the photo\u2026';
+    shrinkImage(file).then(showReceipt).catch(function () {
+      pay.elements.receiptFile.value = '';
+      showReceipt('');
+      toast('That photo could not be attached. Try taking it again.');
+    });
+  });
+
+  pay.elements.bank.addEventListener('change', function () {
+    var other = this.value === OTHER;
+    pay.elements.bankOther.hidden = !other;
+    if (other) pay.elements.bankOther.focus();
+  });
+  pay.addEventListener('input', syncPayMethod);
+
   function paymentValues() {
     var f = pay.elements;
     return {
@@ -304,6 +434,10 @@
       type: getChip(pay, 'type'),
       qty: f.qty.value,
       amount: f.amount.value,
+      method: getChip(pay, 'method') || 'Cash',
+      bank: bankValue(pay),
+      ref: f.ref.value,
+      receipt: payReceipt,
       phone: f.phone.value,
       notes: f.notes.value
     };
@@ -326,6 +460,11 @@
     autofill(f.qty, last.qty, force);
     autofill(f.amount, last.amount, force);
     autofill(f.phone, last.phone, force);
+    if (last.method && (force || !getChip(pay, 'method'))) {
+      setChip(pay, 'method', last.method);
+      syncPayMethod();
+      if (last.bank) setBank(pay, last.bank);
+    }
   }
 
   function resetPayment() {
@@ -338,6 +477,11 @@
     setMaterial(pay, '');
     setChip(pay, 'size', '');
     setChip(pay, 'type', '');
+    setChip(pay, 'method', 'Cash');
+    setBank(pay, '');
+    pay.elements.receiptFile.value = '';
+    showReceipt('');
+    syncPayMethod();
     $('#payment-form-title').textContent = 'New payment (cost)';
     $('#payment-done').textContent = 'Done';
     $('#payment-cancel').hidden = true;
@@ -355,6 +499,11 @@
     setChip(pay, 'type', rec.type);
     f.qty.value = rec.qty || '';
     f.amount.value = rec.amount;
+    setChip(pay, 'method', rec.method || 'Cash');
+    syncPayMethod();
+    setBank(pay, rec.bank || '');
+    f.ref.value = rec.ref || '';
+    showReceipt(rec.receipt || '');
     f.phone.value = rec.phone;
     f.notes.value = rec.notes;
     $('#payment-form-title').textContent = 'Edit payment from ' + U.prettyDate(rec.date);
@@ -420,6 +569,15 @@
   // ---------------- tables ----------------
   function td(v, cls) { return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(v === undefined || v === null ? '' : v) + '</td>'; }
   function money(v) { return U.birr(v).replace(' Br', ''); }
+  function methodText(r) {
+    if ((r.method || 'Cash') !== 'Bank transfer') return 'Cash';
+    var txt = r.bank || 'Bank transfer';
+    return r.ref ? txt + ' \u00b7 ' + r.ref : txt;
+  }
+  function receiptCell(r) {
+    if (!r.receipt) return '<td></td>';
+    return '<td><a class="receipt-link" href="' + esc(r.receipt) + '" target="_blank" rel="noopener">View</a></td>';
+  }
 
   // Owner-only: when the row was last touched and by whom, so an edit a manager
   // made days after the sale date is visible rather than hidden behind it.
@@ -470,13 +628,13 @@
       return '<tr><td class="tbl-actions"><button class="tbl-btn" data-act="edit-payment" data-id="' + r.id + '">Edit</button>' +
         (opts.owner ? ' <button class="tbl-btn danger" data-act="del-payment" data-id="' + r.id + '">Delete</button>' : '') + '</td>' +
         td(U.prettyDate(r.date)) + td(r.material) + td(r.gsm) + td(r.size) + td(r.type) +
-        td(r.qty || '', 'num') + td(money(r.amount), 'num') + td(r.phone) + td(r.notes) +
+        td(r.qty || '', 'num') + td(money(r.amount), 'num') + td(methodText(r)) + receiptCell(r) + td(r.phone) + td(r.notes) +
         (opts.owner ? stampCell(r) : '') + '</tr>';
     }).join('');
     var foot = opts.totals ? '<tfoot><tr><td class="tbl-actions"></td><td colspan="6">Total (' + rows.length + ')</td>' + td(money(total), 'num') +
-      '<td colspan="' + (opts.owner ? 3 : 2) + '"></td></tr></tfoot>' : '';
+      '<td colspan="' + (opts.owner ? 5 : 4) + '"></td></tr></tfoot>' : '';
     return '<table><thead><tr><th class="tbl-actions"></th><th>Date</th><th>Material</th><th>GSM</th><th>Size</th><th>Type</th><th class="num">Qty</th><th class="num">Amount Br</th>' +
-      '<th>Phone</th><th>Other reasons</th>' + (opts.owner ? '<th>Last edited</th>' : '') +
+      '<th>Paid by</th><th>Receipt</th><th>Phone</th><th>Other reasons</th>' + (opts.owner ? '<th>Last edited</th>' : '') +
       '</tr></thead><tbody>' + body + '</tbody>' + foot + '</table>';
   }
 
@@ -742,7 +900,7 @@
   function csv(rows, cols) {
     function cell(v) { v = v === undefined || v === null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
     return '﻿' + [cols.map(function (c) { return cell(c[0]); }).join(',')].concat(rows.map(function (r) {
-      return cols.map(function (c) { return cell(r[c[1]]); }).join(',');
+      return cols.map(function (c) { return cell(typeof c[1] === 'function' ? c[1](r) : r[c[1]]); }).join(',');
     })).join('\n');
   }
   function rangeTag() { var r = currentRange(); return (r.from || 'start') + '_to_' + (r.to || 'latest'); }
@@ -758,7 +916,9 @@
     if (!lastReport) return;
     download('cpack-audit-payments_' + rangeTag() + '.csv', csv(lastReport.data.payments.slice().sort(byNewest), [
       ['Date', 'date'], ['Material', 'material'], ['GSM', 'gsm'], ['Size', 'size'], ['Type', 'type'], ['Quantity', 'qty'],
-      ['Amount', 'amount'], ['Phone', 'phone'], ['Other reasons', 'notes']
+      ['Amount', 'amount'], ['Paid by', 'method'], ['Bank', 'bank'], ['Reference', 'ref'],
+      ['Receipt', function (r) { return r.receipt ? 'yes' : ''; }],
+      ['Phone', 'phone'], ['Other reasons', 'notes']
     ]), 'text/csv;charset=utf-8');
   });
   $('#btn-backup').addEventListener('click', function () {
@@ -879,8 +1039,8 @@
     var b = e.target.closest('[data-staff-remove]');
     if (!b) return;
     var email = b.dataset.staffRemove;
-    if (!confirm('Remove ' + email + '? They will no longer be able to see or add records.')) return;
-    C.removeStaff(email).then(function () { toast('Removed ' + email); }).catch(function (err) { toast(friendly(err)); });
+    if (!confirm('Remove ' + email + '?\n\nTheir phone signs out at once and deletes the records saved on it. Their login still exists, but can no longer read anything \u2014 delete it under Authentication \u2192 Users in Firebase to remove it completely.')) return;
+    C.removeStaff(email).then(function () { toast('Removed ' + email + ' \u2014 signed out on their phone'); }).catch(function (err) { toast(friendly(err)); });
   });
 
   // ---------------- boot ----------------
@@ -923,6 +1083,7 @@
 
   buildChips(inc);
   buildChips(pay);
+  fillBankSelects();
   inc.elements.date.value = today();
   pay.elements.date.value = today();
   setPriceMode(priceMode);
@@ -936,10 +1097,27 @@
   }
   showScreen('auth');
 
-  var stopRecent = null, stopMemory = null, memoryLoaded = false;
+  var stopRecent = null, stopMemory = null, stopAccess = null, memoryLoaded = false;
+
+  // The owner removed this manager. Drop every subscription, sign out, and throw
+  // away the cached books so nothing readable is left on their phone.
+  var revoking = false;
+  function accessRevoked() {
+    if (revoking) return;
+    revoking = true;
+    if (stopAccess) { stopAccess(); stopAccess = null; }
+    stopData();
+    try {
+      localStorage.setItem('cpackAudit.revoked', '1');
+      localStorage.removeItem('cpackAudit.claudeKey');
+    } catch (e) { /* private window */ }
+    C.wipeDevice().then(function () { location.reload(); });
+  }
+
   function stopData() {
     if (stopRecent) { stopRecent(); stopRecent = null; }
     if (stopMemory) { stopMemory(); stopMemory = null; }
+    if (stopAccess) { stopAccess(); stopAccess = null; }
     stopReport();
     stopStaff();
     ownerUnlockedAt = 0;
@@ -962,10 +1140,12 @@
     }
     $('.tab[data-tab="owner"]').hidden = r !== 'owner';
     showScreen('app');
+    stopAccess = C.watchMyAccess(accessRevoked);
     stopMemory = C.watchMemory(function (m) {
       S.setMemory(m);
       if (!memoryLoaded) { memoryLoaded = true; setPriceMode(S.state.memory.priceMode || 'unit'); }
       fillMaterialSelects();
+      fillBankSelects();
       fillDatalists();
     });
     stopRecent = C.watchRecent(function (data) {
@@ -990,6 +1170,14 @@
       $('#signin-error').hidden = false;
     }).then(function () { btn.disabled = false; });
   });
+  try {
+    if (localStorage.getItem('cpackAudit.revoked')) {
+      localStorage.removeItem('cpackAudit.revoked');
+      $('#signin-error').textContent = 'Your access was removed by the owner. This device no longer keeps any records.';
+      $('#signin-error').hidden = false;
+    }
+  } catch (e) { /* private window */ }
+
   $('#btn-forgot').addEventListener('click', function () {
     var email = $('#signin-email').value.trim();
     if (!email) { $('#signin-error').textContent = 'Type your email first, then press Forgot password.'; $('#signin-error').hidden = false; return; }

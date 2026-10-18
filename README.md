@@ -18,7 +18,10 @@ Fields: date (defaults to today, editable), material, GSM, size (XS–XL), print
 - A live preview shows the total cost and profit before you press **Done**.
 
 ### Payments
-Fields: date, material/item, GSM, size, type, quantity (optional), amount paid (Birr), phone, other reasons.
+Fields: date, material/item, GSM, size, type, quantity (optional), amount paid (Birr), **paid by**, phone, other reasons.
+
+- **Paid by** is **Cash** or **Bank transfer**. Choosing *Bank transfer* reveals a bank list covering Ethiopian banks and mobile wallets (CBE, Awash, Dashen, Abyssinia, Telebirr, M-Pesa and more), plus an optional transfer reference. A bank that is not listed is added with **+ Other (type new)…** and is remembered for next time, exactly like a new material.
+- **Receipt photo** (optional) attaches the receipt you received or sent. The photo is shrunk on the phone before it is saved, so it works on weak internet and stays within the free plan. Tap **View** in the table to open it full size.
 
 ### The app remembers your inputs
 - When you pick a material, the app fills in the GSM, size, print type and prices you used **last time for that material**. The fields flash green so you can see what was filled. The memory updates every time you save.
@@ -64,6 +67,8 @@ These rules are enforced by the database (`firestore.rules`) on Google's servers
 | Delete records, manage staff, backups | ✓ | ✗ | ✗ |
 
 Someone who creates their own login, or who has been removed, sees only a "waiting for approval" screen and gets no data.
+
+**Removing a manager takes effect at once.** The moment the owner presses *Remove*, that manager's phone signs itself out, forgets the saved login and deletes the copy of the records held on the device. They are told their access was removed. Their login still exists in Firebase but can no longer read anything; delete it under **Authentication → Users** if you want it gone entirely.
 
 ## Files
 ```

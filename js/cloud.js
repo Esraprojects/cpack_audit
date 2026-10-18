@@ -167,6 +167,28 @@
   }
   function removeStaff(email) { return fs.collection('staff').doc(email).delete(); }
 
+  // Live check that this account is still allowed. The owner always is; a manager
+  // loses access the moment the owner deletes their staff entry. The rules still
+  // let someone read their own staff document, so this fires with exists === false
+  // instead of erroring.
+  function watchMyAccess(onRevoked) {
+    var email = myEmail();
+    if (!email || email === ownerEmail) return function () {};
+    return fs.collection('staff').doc(email).onSnapshot(function (snap) {
+      var uid = auth.currentUser && auth.currentUser.uid;
+      if (!snap.exists || snap.data().uid !== uid) onRevoked();
+    }, function () { onRevoked(); });
+  }
+
+  // Signs out and throws away everything cached on this device, so a removed
+  // manager is left with no readable copy of the books on their phone.
+  function wipeDevice() {
+    return Promise.resolve()
+      .then(function () { return auth.signOut().catch(function () {}); })
+      .then(function () { return fs.terminate().catch(function () {}); })
+      .then(function () { return fs.clearPersistence().catch(function () {}); });
+  }
+
   // ---------- backup (owner) ----------
   async function exportAll() {
     var res = await Promise.all([fs.collection('income').get(), fs.collection('payments').get(), fs.collection('memory').doc('shared').get()]);
@@ -205,6 +227,7 @@
     watchRecent: watchRecent, watchRange: watchRange, watchMemory: watchMemory,
     add: add, update: update, remove: remove, saveMemory: saveMemory,
     watchStaff: watchStaff, addStaff: addStaff, removeStaff: removeStaff,
+    watchMyAccess: watchMyAccess, wipeDevice: wipeDevice,
     exportAll: exportAll, importAll: importAll
   };
 })(window);

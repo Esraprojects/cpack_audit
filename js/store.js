@@ -14,6 +14,26 @@
   ];
   E.SIZES = ['XS', 'S', 'M', 'L', 'XL'];
   E.PRINT_TYPES = ['Full', 'One side', 'Two side', 'Digital UV', 'Offset'];
+  E.PAY_METHODS = ['Cash', 'Bank transfer'];
+
+  // Ethiopian banks and mobile wallets. Anything missing can be typed in with
+  // "+ Other (type new)…", and is then remembered like a custom material.
+  E.BANK_GROUPS = [
+    { label: 'Banks', items: [
+      'Commercial Bank of Ethiopia (CBE)', 'Awash Bank', 'Dashen Bank', 'Bank of Abyssinia',
+      'Wegagen Bank', 'Hibret Bank (United)', 'Nib International Bank', 'Cooperative Bank of Oromia',
+      'Lion International Bank', 'Oromia Bank', 'Zemen Bank', 'Bunna Bank', 'Berhan Bank',
+      'Abay Bank', 'Addis International Bank', 'Debub Global Bank', 'Enat Bank', 'ZamZam Bank',
+      'Hijra Bank', 'Shabelle Bank', 'Siinqee Bank', 'Tsehay Bank', 'Amhara Bank', 'Ahadu Bank',
+      'Goh Betoch Bank', 'Gadaa Bank', 'Rammis Bank', 'Sidama Bank', 'Omo Bank',
+      'Development Bank of Ethiopia'
+    ] },
+    { label: 'Mobile money', items: ['Telebirr', 'CBE Birr', 'M-Pesa', 'HelloCash', 'Amole'] }
+  ];
+
+  // A receipt photo is shrunk and stored inside the record itself, because
+  // Cloud Storage needs a paid plan. Firestore caps one record at 1 MiB.
+  E.RECEIPT_MAX_BYTES = 700000;
 
   // ---------- state (filled live from the online database) ----------
   function emptyMemory() {
@@ -21,6 +41,7 @@
       history: {},                       // field -> most-recent-first list of values
       lastByMaterial: { income: {}, payment: {} },
       customMaterials: [],
+      customBanks: [],
       priceMode: 'unit'
     };
   }
@@ -45,6 +66,7 @@
       mem.lastByMaterial.income = mem.lastByMaterial.income || {};
       mem.lastByMaterial.payment = mem.lastByMaterial.payment || {};
       mem.customMaterials = m.customMaterials || [];
+      mem.customBanks = m.customBanks || [];
       mem.priceMode = m.priceMode || 'unit';
     }
     state.memory = mem;
@@ -148,6 +170,15 @@
     E.MATERIAL_GROUPS.forEach(function (g) { out = out.concat(g.items); });
     return out.concat(state.memory.customMaterials);
   }
+  function addCustomBank(name) {
+    var all = allBanks().map(function (b) { return b.toLowerCase(); });
+    if (name && all.indexOf(name.toLowerCase()) === -1) state.memory.customBanks.push(name);
+  }
+  function allBanks() {
+    var out = [];
+    E.BANK_GROUPS.forEach(function (g) { out = out.concat(g.items); });
+    return out.concat(state.memory.customBanks);
+  }
 
   // ---------- record math ----------
   // Turns raw form values into a stored income record with all totals computed.
@@ -181,6 +212,8 @@
   }
 
   function buildPayment(v) {
+    var method = v.method === 'Bank transfer' ? 'Bank transfer' : 'Cash';
+    var bank = method === 'Bank transfer' ? (v.bank || '').trim() : '';
     return {
       date: v.date,
       material: v.material,
@@ -189,6 +222,10 @@
       type: v.type || '',
       qty: num(v.qty),
       amount: round2(num(v.amount)),
+      method: method,
+      bank: bank,
+      ref: method === 'Bank transfer' ? (v.ref || '').trim() : '',
+      receipt: typeof v.receipt === 'string' ? v.receipt : '',
       phone: (v.phone || '').trim(),
       notes: (v.notes || '').trim()
     };
@@ -260,8 +297,11 @@
       });
     } else {
       if (rec.amount) remember('pay', rec.amount);
+      addCustomBank(rec.bank);
+      if (rec.bank) remember('bank', rec.bank);
       setLastFor('payment', rec.material, {
-        gsm: rec.gsm, size: rec.size, type: rec.type, amount: rec.amount, qty: rec.qty, phone: rec.phone
+        gsm: rec.gsm, size: rec.size, type: rec.type, amount: rec.amount, qty: rec.qty,
+        phone: rec.phone, method: rec.method, bank: rec.bank
       });
     }
   }
@@ -379,6 +419,7 @@
     suggestions: suggestions,
     lastFor: lastFor,
     allMaterials: allMaterials,
+    allBanks: allBanks,
     buildIncome: buildIncome,
     saveIncome: saveIncome,
     savePayment: savePayment,
